@@ -268,7 +268,7 @@ export const Dashboard = () => {
         <Card className="shadow-card">
           <CardContent className="p-12 text-center">
             <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
-            <h3 className="text-2xl font-bold mb-4">Welcome to Vivah Vibes Tracker!</h3>
+            <h3 className="text-2xl font-bold mb-4">Welcome to Vishnu Durga Wedding Tracker!</h3>
             <p className="text-muted-foreground mb-6">
               Start planning your perfect wedding by adding your first task, guest, or vendor.
             </p>
