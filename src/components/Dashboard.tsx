@@ -137,7 +137,7 @@ export const Dashboard = () => {
           </div>
           <div className="text-6xl font-bold mb-2">{daysLeft > 0 ? daysLeft : 0}</div>
           <p className="text-xl opacity-90">Days to go!</p>
-          <p className="text-lg opacity-80 mt-2">December 15, 2024</p>
+          <p className="text-lg opacity-80 mt-2">Janurary 23, 2026</p>
         </CardContent>
       </Card>
 
