@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,91 +12,226 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { 
   Plus,
   Search,
   Mail,
   Phone,
-  MapPin,
   Users,
   CheckCircle2,
   XCircle,
-  Clock
+  Clock,
+  Loader2,
+  Edit,
+  Trash2
 } from "lucide-react";
 
 interface Guest {
   id: string;
   name: string;
   relation: string;
-  phone: string;
-  email: string;
-  rsvpStatus: 'pending' | 'confirmed' | 'declined';
-  invitationSent: boolean;
+  phone?: string;
+  email?: string;
+  rsvp_status: 'pending' | 'confirmed' | 'declined';
+  invitation_sent: boolean;
   category: 'family' | 'friends' | 'colleagues' | 'relatives';
   side: 'bride' | 'groom' | 'both';
+  created_at: string;
 }
 
 export const GuestTracker = () => {
-  const [guests, setGuests] = useState<Guest[]>([
-    {
-      id: '1',
-      name: 'Priya Sharma',
-      relation: 'Sister',
-      phone: '+91 98765 43210',
-      email: 'priya.sharma@email.com',
-      rsvpStatus: 'confirmed',
-      invitationSent: true,
-      category: 'family',
-      side: 'bride'
-    },
-    {
-      id: '2',
-      name: 'Rajesh Kumar',
-      relation: 'Uncle',
-      phone: '+91 87654 32109',
-      email: 'rajesh.kumar@email.com',
-      rsvpStatus: 'confirmed',
-      invitationSent: true,
-      category: 'family',
-      side: 'groom'
-    },
-    {
-      id: '3',
-      name: 'Anil Verma',
-      relation: 'College Friend',
-      phone: '+91 76543 21098',
-      email: 'anil.verma@email.com',
-      rsvpStatus: 'pending',
-      invitationSent: true,
-      category: 'friends',
-      side: 'bride'
-    },
-    {
-      id: '4',
-      name: 'Sita Devi',
-      relation: 'Grandmother',
-      phone: '+91 65432 10987',
-      email: '',
-      rsvpStatus: 'confirmed',
-      invitationSent: true,
-      category: 'family',
-      side: 'groom'
-    },
-    {
-      id: '5',
-      name: 'Amit Singh',
-      relation: 'Colleague',
-      phone: '+91 54321 09876',
-      email: 'amit.singh@office.com',
-      rsvpStatus: 'pending',
-      invitationSent: false,
-      category: 'colleagues',
-      side: 'both'
-    }
-  ]);
-
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    relation: '',
+    phone: '',
+    email: '',
+    rsvp_status: 'pending' as Guest['rsvp_status'],
+    invitation_sent: false,
+    category: 'family' as Guest['category'],
+    side: 'bride' as Guest['side']
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterRsvp, setFilterRsvp] = useState<string>('all');
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchGuests();
+  }, []);
+
+  const fetchGuests = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('guests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch guests",
+        variant: "destructive",
+      });
+    } else {
+      setGuests(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    const guestData = {
+      name: formData.name,
+      relation: formData.relation,
+      phone: formData.phone || null,
+      email: formData.email || null,
+      rsvp_status: formData.rsvp_status,
+      invitation_sent: formData.invitation_sent,
+      category: formData.category,
+      side: formData.side,
+    };
+
+    let error;
+    if (editingGuest) {
+      ({ error } = await supabase
+        .from('guests')
+        .update(guestData)
+        .eq('id', editingGuest.id));
+    } else {
+      ({ error } = await supabase
+        .from('guests')
+        .insert(guestData));
+    }
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${editingGuest ? 'update' : 'create'} guest`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `Guest ${editingGuest ? 'updated' : 'added'} successfully`,
+      });
+      resetForm();
+      fetchGuests();
+    }
+    setSubmitting(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from('guests')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete guest",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Guest deleted successfully",
+      });
+      fetchGuests();
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      relation: '',
+      phone: '',
+      email: '',
+      rsvp_status: 'pending',
+      invitation_sent: false,
+      category: 'family',
+      side: 'bride'
+    });
+    setEditingGuest(null);
+    setIsDialogOpen(false);
+  };
+
+  const handleEdit = (guest: Guest) => {
+    setEditingGuest(guest);
+    setFormData({
+      name: guest.name,
+      relation: guest.relation,
+      phone: guest.phone || '',
+      email: guest.email || '',
+      rsvp_status: guest.rsvp_status,
+      invitation_sent: guest.invitation_sent,
+      category: guest.category,
+      side: guest.side
+    });
+    setIsDialogOpen(true);
+  };
+
+  const toggleRsvpStatus = async (guestId: string, currentStatus: Guest['rsvp_status']) => {
+    const statusOrder: Guest['rsvp_status'][] = ['pending', 'confirmed', 'declined'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const nextIndex = (currentIndex + 1) % statusOrder.length;
+    const newStatus = statusOrder[nextIndex];
+
+    const { error } = await supabase
+      .from('guests')
+      .update({ rsvp_status: newStatus })
+      .eq('id', guestId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update RSVP status",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "RSVP status updated",
+      });
+      fetchGuests();
+    }
+  };
+
+  const toggleInvitationSent = async (guestId: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('guests')
+      .update({ invitation_sent: !currentStatus })
+      .eq('id', guestId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update invitation status",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `Invitation marked as ${!currentStatus ? 'sent' : 'not sent'}`,
+      });
+      fetchGuests();
+    }
+  };
 
   const getRsvpIcon = (status: string) => {
     switch (status) {
@@ -133,29 +269,26 @@ export const GuestTracker = () => {
   const filteredGuests = guests.filter(guest => {
     const nameMatch = guest.name.toLowerCase().includes(searchTerm.toLowerCase());
     const categoryMatch = filterCategory === 'all' || guest.category === filterCategory;
-    const rsvpMatch = filterRsvp === 'all' || guest.rsvpStatus === filterRsvp;
+    const rsvpMatch = filterRsvp === 'all' || guest.rsvp_status === filterRsvp;
     return nameMatch && categoryMatch && rsvpMatch;
   });
 
-  const toggleRsvpStatus = (guestId: string) => {
-    setGuests(guests.map(guest => {
-      if (guest.id === guestId) {
-        const statusOrder = ['pending', 'confirmed', 'declined'];
-        const currentIndex = statusOrder.indexOf(guest.rsvpStatus);
-        const nextIndex = (currentIndex + 1) % statusOrder.length;
-        return { ...guest, rsvpStatus: statusOrder[nextIndex] as Guest['rsvpStatus'] };
-      }
-      return guest;
-    }));
-  };
-
   const stats = {
     total: guests.length,
-    confirmed: guests.filter(g => g.rsvpStatus === 'confirmed').length,
-    pending: guests.filter(g => g.rsvpStatus === 'pending').length,
-    declined: guests.filter(g => g.rsvpStatus === 'declined').length,
-    invitationsSent: guests.filter(g => g.invitationSent).length
+    confirmed: guests.filter(g => g.rsvp_status === 'confirmed').length,
+    pending: guests.filter(g => g.rsvp_status === 'pending').length,
+    declined: guests.filter(g => g.rsvp_status === 'declined').length,
+    invitationsSent: guests.filter(g => g.invitation_sent).length
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading guests...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -165,10 +298,86 @@ export const GuestTracker = () => {
           <h1 className="text-3xl font-bold text-foreground">Guest Tracker</h1>
           <p className="text-muted-foreground">Manage your wedding guest list and RSVPs</p>
         </div>
-        <Button variant="celebration">
-          <Plus className="h-4 w-4" />
-          Add Guest
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="celebration" onClick={() => resetForm()}>
+              <Plus className="h-4 w-4" />
+              Add Guest
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingGuest ? 'Edit Guest' : 'Add New Guest'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Input
+                  placeholder="Guest Name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Input
+                  placeholder="Relation (e.g., Uncle, Friend, Colleague)"
+                  value={formData.relation}
+                  onChange={(e) => setFormData({ ...formData, relation: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Input
+                  placeholder="Phone Number"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                />
+              </div>
+              <div>
+                <Input
+                  placeholder="Email Address"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div>
+                <Select value={formData.category} onValueChange={(value: Guest['category']) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="family">Family</SelectItem>
+                    <SelectItem value="friends">Friends</SelectItem>
+                    <SelectItem value="colleagues">Colleagues</SelectItem>
+                    <SelectItem value="relatives">Relatives</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Select value={formData.side} onValueChange={(value: Guest['side']) => setFormData({ ...formData, side: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Side" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bride">Bride's Side</SelectItem>
+                    <SelectItem value="groom">Groom's Side</SelectItem>
+                    <SelectItem value="both">Both Sides</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1 celebration" disabled={submitting}>
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {editingGuest ? 'Update' : 'Add'} Guest
+                </Button>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Cards */}
@@ -267,12 +476,12 @@ export const GuestTracker = () => {
                       <p className="text-muted-foreground mb-3">{guest.relation}</p>
                       
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {getRsvpBadge(guest.rsvpStatus)}
+                        {getRsvpBadge(guest.rsvp_status)}
                         {getSideBadge(guest.side)}
                         <Badge variant="outline" className="bg-muted">
                           {guest.category.charAt(0).toUpperCase() + guest.category.slice(1)}
                         </Badge>
-                        {guest.invitationSent && (
+                        {guest.invitation_sent && (
                           <Badge variant="outline" className="bg-success/10 text-success border-success">
                             Invitation Sent
                           </Badge>
@@ -299,17 +508,33 @@ export const GuestTracker = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => toggleRsvpStatus(guest.id)}
+                        onClick={() => toggleRsvpStatus(guest.id, guest.rsvp_status)}
                         className="flex items-center gap-2"
                       >
-                        {getRsvpIcon(guest.rsvpStatus)}
+                        {getRsvpIcon(guest.rsvp_status)}
                         Update RSVP
                       </Button>
-                      {!guest.invitationSent && (
-                        <Button size="sm" variant="warm">
-                          Send Invite
-                        </Button>
-                      )}
+                      <Button 
+                        size="sm" 
+                        variant={guest.invitation_sent ? "outline" : "warm"}
+                        onClick={() => toggleInvitationSent(guest.id, guest.invitation_sent)}
+                      >
+                        {guest.invitation_sent ? 'Mark Unsent' : 'Send Invite'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(guest)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(guest.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -319,11 +544,16 @@ export const GuestTracker = () => {
         ))}
       </div>
 
-      {filteredGuests.length === 0 && (
+      {filteredGuests.length === 0 && !loading && (
         <Card className="shadow-card">
           <CardContent className="p-12 text-center">
             <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No guests found matching your search criteria.</p>
+            <p className="text-muted-foreground">
+              {guests.length === 0 
+                ? "No guests added yet. Click 'Add Guest' to start building your guest list!"
+                : "No guests found matching your search criteria."
+              }
+            </p>
           </CardContent>
         </Card>
       )}

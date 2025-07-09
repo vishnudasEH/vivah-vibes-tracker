@@ -14,7 +14,8 @@ import {
   Clock,
   TrendingUp,
   Gift,
-  Store
+  Store,
+  Loader2
 } from "lucide-react";
 
 interface DashboardStats {
@@ -41,6 +42,7 @@ export const Dashboard = () => {
     paidVendors: 0,
     upcomingEvents: 0,
   });
+  const [loading, setLoading] = useState(true);
 
   // Mock data for the wedding date - you can make this dynamic later
   const weddingDate = new Date('2024-12-15');
@@ -52,34 +54,38 @@ export const Dashboard = () => {
   }, []);
 
   const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      // Fetch budget data
-      const { data: budgetData } = await supabase
-        .from('budget_categories')
-        .select('estimated_amount, actual_amount');
+      // Fetch all data in parallel
+      const [
+        { data: budgetData },
+        { data: vendorData },  
+        { data: eventsData },
+        { data: tasksData },
+        { data: guestsData }
+      ] = await Promise.all([
+        supabase.from('budget_categories').select('estimated_amount, actual_amount'),
+        supabase.from('vendors').select('payment_status'),
+        supabase.from('events').select('event_date').gte('event_date', new Date().toISOString().split('T')[0]),
+        supabase.from('tasks').select('status'),
+        supabase.from('guests').select('rsvp_status')
+      ]);
 
-      // Fetch vendor data  
-      const { data: vendorData } = await supabase
-        .from('vendors')
-        .select('payment_status');
-
-      // Fetch events data
-      const { data: eventsData } = await supabase
-        .from('events')
-        .select('event_date')
-        .gte('event_date', new Date().toISOString().split('T')[0]);
-
-      const totalBudget = budgetData?.reduce((sum, cat) => sum + cat.estimated_amount, 0) || 0;
-      const spentBudget = budgetData?.reduce((sum, cat) => sum + cat.actual_amount, 0) || 0;
+      const totalBudget = budgetData?.reduce((sum, cat) => sum + (cat.estimated_amount || 0), 0) || 0;
+      const spentBudget = budgetData?.reduce((sum, cat) => sum + (cat.actual_amount || 0), 0) || 0;
       const totalVendors = vendorData?.length || 0;
       const paidVendors = vendorData?.filter(v => v.payment_status === 'paid').length || 0;
       const upcomingEvents = eventsData?.length || 0;
+      const totalTasks = tasksData?.length || 0;
+      const completedTasks = tasksData?.filter(t => t.status === 'completed').length || 0;
+      const totalGuests = guestsData?.length || 0;
+      const confirmedGuests = guestsData?.filter(g => g.rsvp_status === 'confirmed').length || 0;
 
       setStats({
-        totalTasks: 47, // Mock data - replace when tasks table is created
-        completedTasks: 23, // Mock data
-        totalGuests: 200, // Mock data - from existing GuestTracker
-        confirmedGuests: 156, // Mock data
+        totalTasks,
+        completedTasks,
+        totalGuests,
+        confirmedGuests,
         totalBudget,
         spentBudget,
         totalVendors,
@@ -88,6 +94,8 @@ export const Dashboard = () => {
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -107,6 +115,15 @@ export const Dashboard = () => {
     { name: 'Spent', value: stats.spentBudget, color: '#ff7c7c' },
     { name: 'Remaining', value: Math.max(0, stats.totalBudget - stats.spentBudget), color: '#8dd1e1' },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading dashboard...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -192,158 +209,86 @@ export const Dashboard = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Progress Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={progressData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="completed" fill="#8884d8" name="Completed" />
-                <Bar dataKey="total" fill="#e0e0e0" name="Total" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {(stats.totalTasks > 0 || stats.totalGuests > 0 || stats.totalVendors > 0 || stats.totalBudget > 0) && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Progress Overview
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={progressData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="completed" fill="#8884d8" name="Completed" />
+                  <Bar dataKey="total" fill="#e0e0e0" name="Total" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Budget Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={budgetData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {budgetData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => `₹${Number(value).toLocaleString()}`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          <Card className="shadow-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Budget Distribution
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={budgetData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {budgetData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => `₹${Number(value).toLocaleString()}`} />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      {/* Recent Activities & Upcoming Tasks */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Getting Started Message */}
+      {stats.totalTasks === 0 && stats.totalGuests === 0 && stats.totalVendors === 0 && (
         <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Recent Activities
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <div className="w-2 h-2 bg-success rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Venue booking confirmed</p>
-                  <p className="text-xs text-muted-foreground">2 hours ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Photographer contract signed</p>
-                  <p className="text-xs text-muted-foreground">1 day ago</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <div className="w-2 h-2 bg-secondary rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Invitation cards ordered</p>
-                  <p className="text-xs text-muted-foreground">3 days ago</p>
-                </div>
-              </div>
+          <CardContent className="p-12 text-center">
+            <Heart className="h-16 w-16 text-muted-foreground mx-auto mb-6" />
+            <h3 className="text-2xl font-bold mb-4">Welcome to Vivah Vibes Tracker!</h3>
+            <p className="text-muted-foreground mb-6">
+              Start planning your perfect wedding by adding your first task, guest, or vendor.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+              <Button variant="outline" className="h-20 flex-col gap-2">
+                <CheckSquare className="h-6 w-6" />
+                Add Your First Task
+              </Button>
+              <Button variant="outline" className="h-20 flex-col gap-2">
+                <Users className="h-6 w-6" />
+                Add Your First Guest
+              </Button>
+              <Button variant="outline" className="h-20 flex-col gap-2">
+                <Store className="h-6 w-6" />
+                Add Your First Vendor
+              </Button>
             </div>
           </CardContent>
         </Card>
-
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gift className="h-5 w-5" />
-              Upcoming Tasks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-3 border border-primary/20 rounded-lg">
-                <Calendar className="h-4 w-4 text-primary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Final menu tasting</p>
-                  <p className="text-xs text-muted-foreground">Due in 3 days</p>
-                </div>
-                <Button size="sm" variant="outline">Mark Done</Button>
-              </div>
-              <div className="flex items-center gap-3 p-3 border border-secondary/20 rounded-lg">
-                <Users className="h-4 w-4 text-secondary" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Send final guest list to caterer</p>
-                  <p className="text-xs text-muted-foreground">Due in 5 days</p>
-                </div>
-                <Button size="sm" variant="outline">Mark Done</Button>
-              </div>
-              <div className="flex items-center gap-3 p-3 border border-accent/20 rounded-lg">
-                <Gift className="h-4 w-4 text-accent" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Pick up bridal outfits</p>
-                  <p className="text-xs text-muted-foreground">Due in 1 week</p>
-                </div>
-                <Button size="sm" variant="outline">Mark Done</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <CheckSquare className="h-6 w-6" />
-              Add Task
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Users className="h-6 w-6" />
-              Add Guest
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <Store className="h-6 w-6" />
-              Add Vendor
-            </Button>
-            <Button variant="outline" className="h-20 flex-col gap-2">
-              <DollarSign className="h-6 w-6" />
-              Add Expense
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      )}
     </div>
   );
 };

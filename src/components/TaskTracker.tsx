@@ -1,8 +1,10 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
   SelectContent,
@@ -11,87 +13,198 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { 
   Plus,
   Filter,
   CheckCircle2,
   Clock,
   AlertCircle,
   Calendar,
-  User
+  User,
+  Loader2
 } from "lucide-react";
 
 interface Task {
   id: string;
   title: string;
   category: string;
-  assignedTo: string;
+  assigned_to: string;
   status: 'not-started' | 'in-progress' | 'completed';
-  dueDate: string;
+  due_date: string;
   priority: 'low' | 'medium' | 'high';
+  description?: string;
+  created_at: string;
 }
 
 export const TaskTracker = () => {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      title: 'Book wedding venue',
-      category: 'venue',
-      assignedTo: 'Self',
-      status: 'completed',
-      dueDate: '2024-01-15',
-      priority: 'high'
-    },
-    {
-      id: '2',
-      title: 'Finalize catering menu',
-      category: 'catering',
-      assignedTo: 'Parents',
-      status: 'in-progress',
-      dueDate: '2024-02-01',
-      priority: 'high'
-    },
-    {
-      id: '3',
-      title: 'Order wedding invitations',
-      category: 'decoration',
-      assignedTo: 'Self',
-      status: 'completed',
-      dueDate: '2024-01-20',
-      priority: 'medium'
-    },
-    {
-      id: '4',
-      title: 'Book photographer',
-      category: 'photography',
-      assignedTo: 'Partner',
-      status: 'in-progress',
-      dueDate: '2024-02-05',
-      priority: 'high'
-    },
-    {
-      id: '5',
-      title: 'Shop for bridal outfit',
-      category: 'clothing',
-      assignedTo: 'Self',
-      status: 'not-started',
-      dueDate: '2024-02-15',
-      priority: 'high'
-    },
-    {
-      id: '6',
-      title: 'Plan mehendi ceremony',
-      category: 'rituals',
-      assignedTo: 'Family',
-      status: 'not-started',
-      dueDate: '2024-03-01',
-      priority: 'medium'
-    }
-  ]);
-
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    category: '',
+    assigned_to: '',
+    status: 'not-started' as Task['status'],
+    due_date: '',
+    priority: 'medium' as Task['priority'],
+    description: ''
+  });
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const { toast } = useToast();
 
-  const categories = ['venue', 'catering', 'decoration', 'photography', 'clothing', 'rituals', 'music', 'transport'];
+  const categories = ['venue', 'catering', 'decoration', 'photography', 'clothing', 'rituals', 'music', 'transport', 'documentation', 'others'];
+  
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const fetchTasks = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch tasks",
+        variant: "destructive",
+      });
+    } else {
+      setTasks(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    
+    const taskData = {
+      title: formData.title,
+      category: formData.category,
+      assigned_to: formData.assigned_to,
+      status: formData.status,
+      due_date: formData.due_date,
+      priority: formData.priority,
+      description: formData.description || null,
+    };
+
+    let error;
+    if (editingTask) {
+      ({ error } = await supabase
+        .from('tasks')
+        .update(taskData)
+        .eq('id', editingTask.id));
+    } else {
+      ({ error } = await supabase
+        .from('tasks')
+        .insert(taskData));
+    }
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: `Failed to ${editingTask ? 'update' : 'create'} task`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `Task ${editingTask ? 'updated' : 'created'} successfully`,
+      });
+      resetForm();
+      fetchTasks();
+    }
+    setSubmitting(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+      fetchTasks();
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      category: '',
+      assigned_to: '',
+      status: 'not-started',
+      due_date: '',
+      priority: 'medium',
+      description: ''
+    });
+    setEditingTask(null);
+    setIsDialogOpen(false);
+  };
+
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setFormData({
+      title: task.title,
+      category: task.category,
+      assigned_to: task.assigned_to,
+      status: task.status,
+      due_date: task.due_date,
+      priority: task.priority,
+      description: task.description || ''
+    });
+    setIsDialogOpen(true);
+  };
+
+  const toggleTaskStatus = async (taskId: string, currentStatus: Task['status']) => {
+    const statusOrder: Task['status'][] = ['not-started', 'in-progress', 'completed'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const nextIndex = (currentIndex + 1) % statusOrder.length;
+    const newStatus = statusOrder[nextIndex];
+
+    const { error } = await supabase
+      .from('tasks')
+      .update({ status: newStatus })
+      .eq('id', taskId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task status",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "Task status updated",
+      });
+      fetchTasks();
+    }
+  };
   
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -132,17 +245,14 @@ export const TaskTracker = () => {
     return categoryMatch && statusMatch;
   });
 
-  const toggleTaskStatus = (taskId: string) => {
-    setTasks(tasks.map(task => {
-      if (task.id === taskId) {
-        const statusOrder = ['not-started', 'in-progress', 'completed'];
-        const currentIndex = statusOrder.indexOf(task.status);
-        const nextIndex = (currentIndex + 1) % statusOrder.length;
-        return { ...task, status: statusOrder[nextIndex] as Task['status'] };
-      }
-      return task;
-    }));
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading tasks...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -152,10 +262,87 @@ export const TaskTracker = () => {
           <h1 className="text-3xl font-bold text-foreground">Task Tracker</h1>
           <p className="text-muted-foreground">Manage and track all your wedding tasks</p>
         </div>
-        <Button className="celebration">
-          <Plus className="h-4 w-4" />
-          Add New Task
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="celebration" onClick={() => resetForm()}>
+              <Plus className="h-4 w-4" />
+              Add New Task
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingTask ? 'Edit Task' : 'Add New Task'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Input
+                  placeholder="Task Title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Input
+                  placeholder="Assigned To"
+                  value={formData.assigned_to}
+                  onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Input
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Select value={formData.priority} onValueChange={(value: Task['priority']) => setFormData({ ...formData, priority: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Priority" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Task Description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1 celebration" disabled={submitting}>
+                  {submitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {editingTask ? 'Update' : 'Add'} Task
+                </Button>
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
@@ -205,8 +392,7 @@ export const TaskTracker = () => {
         {filteredTasks.map((task) => (
           <Card 
             key={task.id} 
-            className="shadow-card hover:shadow-elegant transition-all cursor-pointer"
-            onClick={() => toggleTaskStatus(task.id)}
+            className="shadow-card hover:shadow-elegant transition-all"
           >
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
@@ -224,14 +410,40 @@ export const TaskTracker = () => {
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <User className="h-4 w-4" />
-                        {task.assignedTo}
+                        {task.assigned_to}
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {new Date(task.dueDate).toLocaleDateString()}
+                        {new Date(task.due_date).toLocaleDateString()}
                       </div>
                     </div>
+                    {task.description && (
+                      <p className="mt-3 text-sm text-muted-foreground">{task.description}</p>
+                    )}
                   </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleTaskStatus(task.id, task.status)}
+                  >
+                    Update Status
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(task)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(task.id)}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </div>
             </CardContent>
@@ -239,10 +451,16 @@ export const TaskTracker = () => {
         ))}
       </div>
 
-      {filteredTasks.length === 0 && (
+      {filteredTasks.length === 0 && !loading && (
         <Card className="shadow-card">
           <CardContent className="p-12 text-center">
-            <p className="text-muted-foreground">No tasks found matching your filters.</p>
+            <CheckCircle2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              {tasks.length === 0 
+                ? "No tasks created yet. Click 'Add New Task' to get started!"
+                : "No tasks found matching your filters."
+              }
+            </p>
           </CardContent>
         </Card>
       )}
