@@ -1,10 +1,15 @@
+
 import { useState } from "react";
 import { Dashboard } from "@/components/Dashboard";
 import { TaskTracker } from "@/components/TaskTracker";
 import { GuestTracker } from "@/components/GuestTracker";
+import { VendorTracker } from "@/components/VendorTracker";
+import { BudgetTracker } from "@/components/BudgetTracker";
+import { EventSchedule } from "@/components/EventSchedule";
+import { MediaUpload } from "@/components/MediaUpload";
 import { Navigation } from "@/components/Navigation";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -17,6 +22,14 @@ const Index = () => {
         return <TaskTracker />;
       case 'guests':
         return <GuestTracker />;
+      case 'vendors':
+        return <VendorTracker />;
+      case 'budget':
+        return <BudgetTracker />;
+      case 'events':
+        return <EventSchedule />;
+      case 'media':
+        return <MediaUpload />;
       default:
         return <Dashboard />;
     }

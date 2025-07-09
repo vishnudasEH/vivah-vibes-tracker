@@ -14,7 +14,153 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      budget_categories: {
+        Row: {
+          actual_amount: number
+          created_at: string
+          estimated_amount: number
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          actual_amount?: number
+          created_at?: string
+          estimated_amount?: number
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          actual_amount?: number
+          created_at?: string
+          estimated_amount?: number
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          created_at: string
+          dress_code: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          name: string
+          notes: string | null
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          created_at?: string
+          dress_code?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          created_at?: string
+          dress_code?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          description: string
+          expense_date: string
+          id: string
+          vendor_id: string | null
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          description: string
+          expense_date?: string
+          id?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          expense_date?: string
+          id?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          agreed_price: number | null
+          booking_notes: string | null
+          category: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          name: string
+          payment_status: string
+          updated_at: string
+        }
+        Insert: {
+          agreed_price?: number | null
+          booking_notes?: string | null
+          category: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          payment_status?: string
+          updated_at?: string
+        }
+        Update: {
+          agreed_price?: number | null
+          booking_notes?: string | null
+          category?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          payment_status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

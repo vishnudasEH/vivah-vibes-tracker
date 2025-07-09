@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
@@ -5,10 +6,11 @@ import {
   Users, 
   Store, 
   DollarSign, 
-  Calendar 
+  Calendar,
+  Upload
 } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media';
 
 interface NavigationProps {
   activeView: ActiveView;
@@ -23,6 +25,7 @@ export const Navigation = ({ activeView, setActiveView }: NavigationProps) => {
     { id: 'vendors' as ActiveView, label: 'Vendors', icon: Store },
     { id: 'budget' as ActiveView, label: 'Budget', icon: DollarSign },
     { id: 'events' as ActiveView, label: 'Events', icon: Calendar },
+    { id: 'media' as ActiveView, label: 'Media', icon: Upload },
   ];
 
   return (
