@@ -31,6 +31,8 @@ import {
   Trash2
 } from "lucide-react";
 
+type PaymentStatus = 'pending' | 'partial' | 'paid';
+
 interface Vendor {
   id: string;
   name: string;
@@ -38,7 +40,7 @@ interface Vendor {
   contact_phone?: string;
   contact_email?: string;
   agreed_price?: number;
-  payment_status: 'pending' | 'partial' | 'paid';
+  payment_status: PaymentStatus;
   booking_notes?: string;
 }
 
@@ -52,7 +54,7 @@ export const VendorTracker = () => {
     contact_phone: '',
     contact_email: '',
     agreed_price: '',
-    payment_status: 'pending' as const,
+    payment_status: 'pending' as PaymentStatus,
     booking_notes: ''
   });
   const { toast } = useToast();
@@ -80,7 +82,12 @@ export const VendorTracker = () => {
         variant: "destructive",
       });
     } else {
-      setVendors(data || []);
+      // Type cast the payment_status to ensure it matches our PaymentStatus type
+      const typedVendors = (data || []).map(vendor => ({
+        ...vendor,
+        payment_status: vendor.payment_status as PaymentStatus
+      }));
+      setVendors(typedVendors);
     }
   };
 
@@ -174,7 +181,7 @@ export const VendorTracker = () => {
     setIsDialogOpen(true);
   };
 
-  const getPaymentStatusBadge = (status: string) => {
+  const getPaymentStatusBadge = (status: PaymentStatus) => {
     switch (status) {
       case 'paid':
         return <Badge className="bg-success text-success-foreground">Paid</Badge>;
@@ -249,7 +256,7 @@ export const VendorTracker = () => {
                 />
               </div>
               <div>
-                <Select value={formData.payment_status} onValueChange={(value: any) => setFormData({ ...formData, payment_status: value })}>
+                <Select value={formData.payment_status} onValueChange={(value: PaymentStatus) => setFormData({ ...formData, payment_status: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Payment Status" />
                   </SelectTrigger>
