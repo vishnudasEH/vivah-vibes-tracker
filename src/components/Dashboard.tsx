@@ -45,7 +45,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   // Mock data for the wedding date - you can make this dynamic later
-  const weddingDate = new Date('2024-12-15');
+  const weddingDate = new Date('2026-01-23');
   const today = new Date();
   const daysLeft = Math.ceil((weddingDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
 
@@ -137,7 +137,7 @@ export const Dashboard = () => {
           </div>
           <div className="text-6xl font-bold mb-2">{daysLeft > 0 ? daysLeft : 0}</div>
           <p className="text-xl opacity-90">Days to go!</p>
-          <p className="text-lg opacity-80 mt-2">Janurary 23, 2026</p>
+          <p className="text-lg opacity-80 mt-2">January 23, 2026</p>
         </CardContent>
       </Card>
 
