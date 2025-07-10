@@ -1,13 +1,14 @@
+
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
+import { 
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
+import { 
   Command,
   CommandEmpty,
   CommandGroup,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import {
+import { 
   Check,
   ChevronDown,
   Plus,
@@ -34,13 +35,13 @@ interface MultiSelectTagsProps {
   placeholder?: string;
 }
 
-// Reusable add new tag form
-const AddNewTagForm = ({
-  newTagName,
-  setNewTagName,
-  handleAddNewTag,
+// Separate component for add new tag form to avoid duplication
+const AddNewTagForm = ({ 
+  newTagName, 
+  setNewTagName, 
+  handleAddNewTag, 
   setShowAddNew,
-  isLoading = false
+  isLoading = false 
 }: {
   newTagName: string;
   setNewTagName: (name: string) => void;
@@ -65,16 +66,16 @@ const AddNewTagForm = ({
       disabled={isLoading}
       className="flex-1"
     />
-    <Button
-      size="sm"
+    <Button 
+      size="sm" 
       onClick={handleAddNewTag}
       disabled={isLoading || !newTagName.trim()}
     >
       {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
     </Button>
-    <Button
-      size="sm"
-      variant="outline"
+    <Button 
+      size="sm" 
+      variant="outline" 
       onClick={() => setShowAddNew(false)}
       disabled={isLoading}
     >
@@ -83,13 +84,11 @@ const AddNewTagForm = ({
   </div>
 );
 
-export const MultiSelectTags = ({
-  selectedTags = [],
-  onTagsChange,
-  placeholder = "Select tags..."
+export const MultiSelectTags = ({ 
+  selectedTags = [], 
+  onTagsChange, 
+  placeholder = "Select tags..." 
 }: MultiSelectTagsProps) => {
-  console.log("Rendering MultiSelectTags with tags:", selectedTags);
-
   const [availableTags, setAvailableTags] = useState<TagType[]>([]);
   const [open, setOpen] = useState(false);
   const [newTagName, setNewTagName] = useState('');
@@ -98,7 +97,8 @@ export const MultiSelectTags = ({
   const [isAddingTag, setIsAddingTag] = useState(false);
   const { toast } = useToast();
 
-  const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags.filter(Boolean) : [];
+  // Ensure selectedTags is always an array
+  const safeSelectedTags = Array.isArray(selectedTags) ? selectedTags : [];
 
   useEffect(() => {
     fetchTags();
@@ -125,12 +125,12 @@ export const MultiSelectTags = ({
       }
     } catch (error) {
       console.error('Error fetching tags:', error);
+      setAvailableTags([]);
       toast({
         title: "Error",
         description: "Failed to fetch tags",
         variant: "destructive",
       });
-      setAvailableTags([]);
     } finally {
       setIsLoading(false);
     }
@@ -138,11 +138,11 @@ export const MultiSelectTags = ({
 
   const handleTagSelect = (tag: TagType) => {
     if (!tag || !tag.id) return;
-
+    
     try {
-      const isSelected = safeSelectedTags.some(t => t?.id === tag.id);
+      const isSelected = safeSelectedTags.some(t => t && t.id === tag.id);
       if (isSelected) {
-        onTagsChange(safeSelectedTags.filter(t => t?.id !== tag.id));
+        onTagsChange(safeSelectedTags.filter(t => t && t.id !== tag.id));
       } else {
         onTagsChange([...safeSelectedTags, tag]);
       }
@@ -165,8 +165,8 @@ export const MultiSelectTags = ({
       if (error) {
         toast({
           title: "Error",
-          description: error.message.includes('duplicate')
-            ? "A tag with this name already exists"
+          description: error.message.includes('duplicate') 
+            ? "A tag with this name already exists" 
             : "Failed to create tag",
           variant: "destructive",
         });
@@ -175,8 +175,13 @@ export const MultiSelectTags = ({
           title: "Success",
           description: "Tag created successfully",
         });
-        setAvailableTags([...availableTags, data]);
+        
+        // Update available tags and select the new tag
+        const newAvailableTags = [...availableTags, data];
+        setAvailableTags(newAvailableTags);
         onTagsChange([...safeSelectedTags, data]);
+        
+        // Reset form
         setNewTagName('');
         setShowAddNew(false);
       }
@@ -194,27 +199,30 @@ export const MultiSelectTags = ({
 
   const removeTag = (tagId: string) => {
     if (!tagId) return;
-    onTagsChange(safeSelectedTags.filter(t => t?.id !== tagId));
+    
+    try {
+      onTagsChange(safeSelectedTags.filter(t => t && t.id !== tagId));
+    } catch (error) {
+      console.error('Error removing tag:', error);
+    }
   };
 
+  // Safe rendering helpers
   const renderSelectedCount = () => {
     const count = safeSelectedTags.length;
-    return count === 0 ? placeholder : `${count} tag${count > 1 ? 's' : ''} selected`;
+    if (count === 0) return placeholder;
+    return `${count} tag${count > 1 ? 's' : ''} selected`;
   };
 
   const renderTagItems = () => {
-    if (!Array.isArray(availableTags)) {
-      console.warn("availableTags is not an array:", availableTags);
+    if (!Array.isArray(availableTags) || availableTags.length === 0) {
       return null;
     }
 
     return availableTags.map((tag) => {
-      if (!tag || !tag.id || !tag.name) {
-        console.warn("Invalid tag:", tag);
-        return null;
-      }
-
-      const isSelected = safeSelectedTags.some(t => t?.id === tag.id);
+      if (!tag || !tag.id || !tag.name) return null;
+      
+      const isSelected = safeSelectedTags.some(t => t && t.id === tag.id);
       return (
         <CommandItem
           key={tag.id}
@@ -258,7 +266,7 @@ export const MultiSelectTags = ({
         <PopoverContent className="w-full p-0 bg-popover border" align="start" side="bottom">
           <Command className="bg-popover">
             <CommandInput placeholder="Search tags..." />
-
+            
             <CommandEmpty>
               <div className="p-4 text-center">
                 <p className="text-sm text-muted-foreground mb-3">No tags found.</p>
@@ -283,7 +291,7 @@ export const MultiSelectTags = ({
                 )}
               </div>
             </CommandEmpty>
-
+            
             <CommandGroup className="max-h-64 overflow-auto">
               {isLoading ? (
                 <div className="p-4 text-center">
@@ -301,7 +309,7 @@ export const MultiSelectTags = ({
                 </>
               )}
             </CommandGroup>
-
+            
             {Array.isArray(availableTags) && availableTags.length > 0 && (
               <div className="p-2 border-t bg-muted/10">
                 {!showAddNew ? (
@@ -329,15 +337,17 @@ export const MultiSelectTags = ({
           </Command>
         </PopoverContent>
       </Popover>
-
+      
+      {/* Selected Tags Display */}
       {Array.isArray(safeSelectedTags) && safeSelectedTags.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {safeSelectedTags.map((tag) => {
             if (!tag || !tag.id || !tag.name) return null;
+            
             return (
-              <Badge
-                key={tag.id}
-                variant="secondary"
+              <Badge 
+                key={tag.id} 
+                variant="secondary" 
                 className="flex items-center gap-1 pr-1"
               >
                 <span>{tag.name}</span>
