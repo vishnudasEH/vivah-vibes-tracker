@@ -33,19 +33,9 @@ import {
   Edit,
   Trash2
 } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
-interface Guest {
-  id: string;
-  name: string;
-  relation: string;
-  phone?: string;
-  email?: string;
-  rsvp_status: 'pending' | 'confirmed' | 'declined';
-  invitation_sent: boolean;
-  category: 'family' | 'friends' | 'colleagues' | 'relatives';
-  side: 'bride' | 'groom' | 'both';
-  created_at: string;
-}
+type Guest = Tables<'guests'>;
 
 export const GuestTracker = () => {
   const [guests, setGuests] = useState<Guest[]>([]);

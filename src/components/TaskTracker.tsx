@@ -31,18 +31,9 @@ import {
   User,
   Loader2
 } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
-interface Task {
-  id: string;
-  title: string;
-  category: string;
-  assigned_to: string;
-  status: 'not-started' | 'in-progress' | 'completed';
-  due_date: string;
-  priority: 'low' | 'medium' | 'high';
-  description?: string;
-  created_at: string;
-}
+type Task = Tables<'tasks'>;
 
 export const TaskTracker = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
