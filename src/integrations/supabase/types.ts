@@ -122,6 +122,87 @@ export type Database = {
           },
         ]
       }
+      guests: {
+        Row: {
+          category: string
+          created_at: string
+          email: string | null
+          id: string
+          invitation_sent: boolean
+          name: string
+          phone: string | null
+          relation: string
+          rsvp_status: string
+          side: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          invitation_sent?: boolean
+          name: string
+          phone?: string | null
+          relation: string
+          rsvp_status?: string
+          side: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          invitation_sent?: boolean
+          name?: string
+          phone?: string | null
+          relation?: string
+          rsvp_status?: string
+          side?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string
+          category: string
+          created_at: string
+          description: string | null
+          due_date: string
+          id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          category: string
+          created_at?: string
+          description?: string | null
+          due_date: string
+          id?: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       vendors: {
         Row: {
           agreed_price: number | null

@@ -44,7 +44,7 @@ export const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Mock data for the wedding date - you can make this dynamic later
+  // Wedding date
   const weddingDate = new Date('2026-01-23');
   const today = new Date();
   const daysLeft = Math.ceil((weddingDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
@@ -58,11 +58,11 @@ export const Dashboard = () => {
     try {
       // Fetch all data in parallel
       const [
-        { data: budgetData },
-        { data: vendorData },  
-        { data: eventsData },
-        { data: tasksData },
-        { data: guestsData }
+        { data: budgetData, error: budgetError },
+        { data: vendorData, error: vendorError },  
+        { data: eventsData, error: eventsError },
+        { data: tasksData, error: tasksError },
+        { data: guestsData, error: guestsError }
       ] = await Promise.all([
         supabase.from('budget_categories').select('estimated_amount, actual_amount'),
         supabase.from('vendors').select('payment_status'),
@@ -70,6 +70,13 @@ export const Dashboard = () => {
         supabase.from('tasks').select('status'),
         supabase.from('guests').select('rsvp_status')
       ]);
+
+      // Handle errors
+      if (budgetError) console.error('Budget data error:', budgetError);
+      if (vendorError) console.error('Vendor data error:', vendorError);
+      if (eventsError) console.error('Events data error:', eventsError);
+      if (tasksError) console.error('Tasks data error:', tasksError);
+      if (guestsError) console.error('Guests data error:', guestsError);
 
       const totalBudget = budgetData?.reduce((sum, cat) => sum + (cat.estimated_amount || 0), 0) || 0;
       const spentBudget = budgetData?.reduce((sum, cat) => sum + (cat.actual_amount || 0), 0) || 0;
