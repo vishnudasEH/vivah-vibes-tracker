@@ -230,7 +230,7 @@ export const GuestTracker = () => {
       invitation_sent: guest.invitation_sent,
       side: guest.side
     });
-    setSelectedTags(guest.guest_tags.map(gt => gt.tags));
+    setSelectedTags((guest.guest_tags ?? []).map(gt => gt.tags));
     setIsDialogOpen(true);
   };
 
@@ -317,7 +317,7 @@ export const GuestTracker = () => {
   const filteredGuests = guests.filter(guest => {
     const nameMatch = guest.name.toLowerCase().includes(searchTerm.toLowerCase());
     const rsvpMatch = filterRsvp === 'all' || guest.rsvp_status === filterRsvp;
-    const tagMatch = filterTag === 'all' || guest.guest_tags.some(gt => gt.tags.id === filterTag);
+    const tagMatch = filterTag === 'all' || (guest.guest_tags ?? []).some(gt => gt.tags.id === filterTag);
     return nameMatch && rsvpMatch && tagMatch;
   });
 
@@ -555,7 +555,7 @@ export const GuestTracker = () => {
                           <div className="flex flex-wrap gap-2 mb-4">
                             {getRsvpBadge(guest.rsvp_status)}
                             {getSideBadge(guest.side)}
-                            {guest.guest_tags.map((gt) => (
+                            (guest.guest_tags ?? []).map((gt) => (
                               <Badge key={gt.tags.id} variant="outline" className="bg-primary/10 text-primary border-primary">
                                 {gt.tags.name}
                               </Badge>
