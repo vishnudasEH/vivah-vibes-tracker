@@ -122,13 +122,50 @@ export type Database = {
           },
         ]
       }
+      guest_tags: {
+        Row: {
+          created_at: string
+          guest_id: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          created_at?: string
+          guest_id: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          created_at?: string
+          guest_id?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_tags_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guest_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
-          category: string
+          category: string | null
           created_at: string
           email: string | null
           id: string
           invitation_sent: boolean
+          members: number
           name: string
           phone: string | null
           relation: string
@@ -137,11 +174,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          category: string
+          category?: string | null
           created_at?: string
           email?: string | null
           id?: string
           invitation_sent?: boolean
+          members?: number
           name: string
           phone?: string | null
           relation: string
@@ -150,16 +188,38 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          category?: string
+          category?: string | null
           created_at?: string
           email?: string | null
           id?: string
           invitation_sent?: boolean
+          members?: number
           name?: string
           phone?: string | null
           relation?: string
           rsvp_status?: string
           side?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tags: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
