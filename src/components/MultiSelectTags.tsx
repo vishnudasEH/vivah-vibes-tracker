@@ -35,7 +35,7 @@ interface MultiSelectTagsProps {
 }
 
 export const MultiSelectTags = ({ 
-  selectedTags, 
+  selectedTags = [], 
   onTagsChange, 
   placeholder = "Select tags..." 
 }: MultiSelectTagsProps) => {
@@ -50,13 +50,25 @@ export const MultiSelectTags = ({
   }, []);
 
   const fetchTags = async () => {
-    const { data, error } = await supabase
-      .from('tags')
-      .select('*')
-      .order('name', { ascending: true });
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .select('*')
+        .order('name', { ascending: true });
 
-    if (!error && data) {
-      setAvailableTags(data);
+      if (error) {
+        console.error('Error fetching tags:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch tags",
+          variant: "destructive",
+        });
+      } else {
+        setAvailableTags(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      setAvailableTags([]);
     }
   };
 
@@ -72,29 +84,38 @@ export const MultiSelectTags = ({
   const handleAddNewTag = async () => {
     if (!newTagName.trim()) return;
 
-    const { data, error } = await supabase
-      .from('tags')
-      .insert({ name: newTagName.trim() })
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('tags')
+        .insert({ name: newTagName.trim() })
+        .select()
+        .single();
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message.includes('duplicate') 
+            ? "A tag with this name already exists" 
+            : "Failed to create tag",
+          variant: "destructive",
+        });
+      } else if (data) {
+        toast({
+          title: "Success",
+          description: "Tag created successfully",
+        });
+        setAvailableTags([...availableTags, data]);
+        onTagsChange([...selectedTags, data]);
+        setNewTagName('');
+        setShowAddNew(false);
+      }
+    } catch (error) {
+      console.error('Error creating tag:', error);
       toast({
         title: "Error",
-        description: error.message.includes('duplicate') 
-          ? "A tag with this name already exists" 
-          : "Failed to create tag",
+        description: "Failed to create tag",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Tag created successfully",
-      });
-      setAvailableTags([...availableTags, data]);
-      onTagsChange([...selectedTags, data]);
-      setNewTagName('');
-      setShowAddNew(false);
     }
   };
 
@@ -118,7 +139,7 @@ export const MultiSelectTags = ({
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-full p-0">
+        <PopoverContent className="w-full p-0" align="start">
           <Command>
             <CommandInput placeholder="Search tags..." />
             <CommandEmpty>
@@ -150,7 +171,7 @@ export const MultiSelectTags = ({
               </div>
             </CommandEmpty>
             <CommandGroup>
-              {availableTags.map((tag) => {
+              {Array.isArray(availableTags) && availableTags.map((tag) => {
                 const isSelected = selectedTags.some(t => t.id === tag.id);
                 return (
                   <CommandItem
