@@ -1,5 +1,6 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Navigation } from "@/components/Navigation";
 import { Dashboard } from "@/components/Dashboard";
 import { TaskTracker } from "@/components/TaskTracker";
 import { GuestTracker } from "@/components/GuestTracker";
@@ -7,14 +8,36 @@ import { VendorTracker } from "@/components/VendorTracker";
 import { BudgetTracker } from "@/components/BudgetTracker";
 import { EventSchedule } from "@/components/EventSchedule";
 import { MediaUpload } from "@/components/MediaUpload";
-import { Navigation } from "@/components/Navigation";
+import { Login } from "@/components/Login";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const renderContent = () => {
+  useEffect(() => {
+    // Check if user is already authenticated
+    const authStatus = localStorage.getItem('wedding-app-authenticated');
+    setIsAuthenticated(authStatus === 'true');
+  }, []);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('wedding-app-authenticated');
+    setIsAuthenticated(false);
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  const renderActiveView = () => {
     switch (activeView) {
       case 'dashboard':
         return <Dashboard />;
@@ -36,27 +59,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-gradient-celebration p-6 shadow-elegant">
-        <div className="container mx-auto">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-white mb-2">
-              Vishnu Durga Wedding Tracker ✨
-            </h1>
-            <p className="text-white/90 text-lg">
-              Your personalized Indian wedding planner & tracker
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
+      <div className="bg-card border-b shadow-card">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-primary">Wedding Planner</h1>
+          <Button variant="outline" size="sm" onClick={handleLogout}>
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
         </div>
-      </header>
-
-      {/* Navigation */}
+      </div>
+      
       <Navigation activeView={activeView} setActiveView={setActiveView} />
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {renderContent()}
+      
+      <main className="container mx-auto px-4 py-6">
+        {renderActiveView()}
       </main>
     </div>
   );
