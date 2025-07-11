@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -131,7 +130,17 @@ export const EventReminders = () => {
 
   const handleEdit = (reminder: EventReminder) => {
     setEditingReminder(reminder);
-    setFormData(reminder);
+    setFormData({
+      event_name: reminder.event_name,
+      event_date: reminder.event_date,
+      event_time: reminder.event_time,
+      reminder_type: reminder.reminder_type,
+      reminder_time: reminder.reminder_time,
+      recipient_type: reminder.recipient_type,
+      recipients: reminder.recipients || '',
+      message: reminder.message,
+      is_active: reminder.is_active
+    });
     setIsDialogOpen(true);
   };
 

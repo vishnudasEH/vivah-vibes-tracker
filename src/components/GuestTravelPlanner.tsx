@@ -141,7 +141,22 @@ export const GuestTravelPlanner = () => {
 
   const handleEdit = (plan: GuestTravel) => {
     setEditingPlan(plan);
-    setFormData(plan);
+    setFormData({
+      guest_name: plan.guest_name,
+      contact_phone: plan.contact_phone || '',
+      arrival_date: plan.arrival_date || '',
+      arrival_time: plan.arrival_time || '',
+      departure_date: plan.departure_date || '',
+      departure_time: plan.departure_time || '',
+      travel_mode: plan.travel_mode,
+      travel_details: plan.travel_details || '',
+      accommodation_needed: plan.accommodation_needed,
+      accommodation_type: plan.accommodation_type || 'hotel',
+      accommodation_details: plan.accommodation_details || '',
+      pickup_required: plan.pickup_required,
+      pickup_location: plan.pickup_location || '',
+      notes: plan.notes || ''
+    });
     setIsDialogOpen(true);
   };
 

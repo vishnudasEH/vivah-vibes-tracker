@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -114,7 +113,15 @@ export const InvitationTracker = () => {
 
   const handleEdit = (invitation: Invitation) => {
     setEditingInvitation(invitation);
-    setFormData(invitation);
+    setFormData({
+      guest_name: invitation.guest_name,
+      contact_info: invitation.contact_info,
+      invitation_method: invitation.invitation_method,
+      status: invitation.status,
+      sent_date: invitation.sent_date || '',
+      response_date: invitation.response_date || '',
+      notes: invitation.notes || ''
+    });
     setIsDialogOpen(true);
   };
 
