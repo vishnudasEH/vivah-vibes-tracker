@@ -22,18 +22,21 @@ import {
   FileText,
   Edit,
   Trash2,
-  Temple
+  Church
 } from "lucide-react";
 
 interface TamilCeremony {
   id: string;
-  name: string;
-  ceremony_date: string;
-  ceremony_time?: string;
-  temple_info?: string;
-  items_needed?: string;
-  comments?: string;
-  status: 'planned' | 'completed' | 'cancelled';
+  ceremony_name: string;
+  ceremony_date: string | null;
+  ceremony_time: string | null;
+  venue: string | null;
+  temple_info: string | null;
+  items_needed: string | null;
+  family_roles: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 const TAMIL_CEREMONY_TEMPLATES = [
@@ -54,13 +57,14 @@ export const TamilCeremonies = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCeremony, setEditingCeremony] = useState<TamilCeremony | null>(null);
   const [formData, setFormData] = useState({
-    name: '',
+    ceremony_name: '',
     ceremony_date: '',
     ceremony_time: '',
+    venue: '',
     temple_info: '',
     items_needed: '',
-    comments: '',
-    status: 'planned' as const
+    family_roles: '',
+    notes: ''
   });
   const { toast } = useToast();
 
@@ -89,13 +93,14 @@ export const TamilCeremonies = () => {
     e.preventDefault();
     
     const ceremonyData = {
-      name: formData.name,
-      ceremony_date: formData.ceremony_date,
+      ceremony_name: formData.ceremony_name,
+      ceremony_date: formData.ceremony_date || null,
       ceremony_time: formData.ceremony_time || null,
+      venue: formData.venue || null,
       temple_info: formData.temple_info || null,
       items_needed: formData.items_needed || null,
-      comments: formData.comments || null,
-      status: formData.status,
+      family_roles: formData.family_roles || null,
+      notes: formData.notes || null,
     };
 
     let error;
@@ -149,13 +154,14 @@ export const TamilCeremonies = () => {
 
   const resetForm = () => {
     setFormData({
-      name: '',
+      ceremony_name: '',
       ceremony_date: '',
       ceremony_time: '',
+      venue: '',
       temple_info: '',
       items_needed: '',
-      comments: '',
-      status: 'planned'
+      family_roles: '',
+      notes: ''
     });
     setEditingCeremony(null);
     setIsDialogOpen(false);
@@ -164,18 +170,20 @@ export const TamilCeremonies = () => {
   const handleEdit = (ceremony: TamilCeremony) => {
     setEditingCeremony(ceremony);
     setFormData({
-      name: ceremony.name,
-      ceremony_date: ceremony.ceremony_date,
+      ceremony_name: ceremony.ceremony_name,
+      ceremony_date: ceremony.ceremony_date || '',
       ceremony_time: ceremony.ceremony_time || '',
+      venue: ceremony.venue || '',
       temple_info: ceremony.temple_info || '',
       items_needed: ceremony.items_needed || '',
-      comments: ceremony.comments || '',
-      status: ceremony.status
+      family_roles: ceremony.family_roles || '',
+      notes: ceremony.notes || ''
     });
     setIsDialogOpen(true);
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return null;
     return new Date(dateString).toLocaleDateString('en-IN', {
       weekday: 'long',
       year: 'numeric',
@@ -184,21 +192,13 @@ export const TamilCeremonies = () => {
     });
   };
 
-  const formatTime = (timeString?: string) => {
+  const formatTime = (timeString?: string | null) => {
     if (!timeString) return null;
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-IN', {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true
     });
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-500';
-      case 'cancelled': return 'bg-red-500';
-      default: return 'bg-blue-500';
-    }
   };
 
   return (
@@ -223,8 +223,8 @@ export const TamilCeremonies = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <select
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.ceremony_name}
+                  onChange={(e) => setFormData({ ...formData, ceremony_name: e.target.value })}
                   className="w-full p-2 border rounded-md"
                   required
                 >
@@ -239,7 +239,6 @@ export const TamilCeremonies = () => {
                   type="date"
                   value={formData.ceremony_date}
                   onChange={(e) => setFormData({ ...formData, ceremony_date: e.target.value })}
-                  required
                 />
                 <Input
                   type="time"
@@ -248,6 +247,11 @@ export const TamilCeremonies = () => {
                   onChange={(e) => setFormData({ ...formData, ceremony_time: e.target.value })}
                 />
               </div>
+              <Input
+                placeholder="Venue"
+                value={formData.venue}
+                onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+              />
               <Textarea
                 placeholder="Temple Information (Name, Address, Contact)"
                 value={formData.temple_info}
@@ -259,19 +263,15 @@ export const TamilCeremonies = () => {
                 onChange={(e) => setFormData({ ...formData, items_needed: e.target.value })}
               />
               <Textarea
-                placeholder="Comments & Special Instructions"
-                value={formData.comments}
-                onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                placeholder="Family Roles (Who does what, assignments)"
+                value={formData.family_roles}
+                onChange={(e) => setFormData({ ...formData, family_roles: e.target.value })}
               />
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as 'planned' | 'completed' | 'cancelled' })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="planned">Planned</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+              <Textarea
+                placeholder="Notes & Special Instructions"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              />
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1 celebration">
                   {editingCeremony ? 'Update' : 'Add'} Ceremony
@@ -293,18 +293,17 @@ export const TamilCeremonies = () => {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
-                    <Temple className="h-5 w-5 text-primary" />
-                    <h3 className="text-xl font-semibold">{ceremony.name}</h3>
-                    <Badge className={`${getStatusBadgeColor(ceremony.status)} text-white`}>
-                      {ceremony.status}
-                    </Badge>
+                    <Church className="h-5 w-5 text-primary" />
+                    <h3 className="text-xl font-semibold">{ceremony.ceremony_name}</h3>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      {formatDate(ceremony.ceremony_date)}
-                    </div>
+                    {ceremony.ceremony_date && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        {formatDate(ceremony.ceremony_date)}
+                      </div>
+                    )}
                     
                     {ceremony.ceremony_time && (
                       <div className="flex items-center gap-2 text-muted-foreground">
@@ -314,10 +313,22 @@ export const TamilCeremonies = () => {
                     )}
                   </div>
                   
-                  {ceremony.temple_info && (
+                  {ceremony.venue && (
                     <div className="mb-3 p-3 bg-muted rounded-lg">
                       <div className="flex items-start gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="font-medium text-sm">Venue</p>
+                          <p className="text-sm">{ceremony.venue}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {ceremony.temple_info && (
+                    <div className="mb-3 p-3 bg-muted rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Church className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
                           <p className="font-medium text-sm">Temple Information</p>
                           <p className="text-sm">{ceremony.temple_info}</p>
@@ -338,13 +349,25 @@ export const TamilCeremonies = () => {
                     </div>
                   )}
                   
-                  {ceremony.comments && (
+                  {ceremony.family_roles && (
+                    <div className="mb-3 p-3 bg-muted rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
+                        <div>
+                          <p className="font-medium text-sm">Family Roles</p>
+                          <p className="text-sm">{ceremony.family_roles}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {ceremony.notes && (
                     <div className="p-3 bg-muted rounded-lg">
                       <div className="flex items-start gap-2">
                         <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="font-medium text-sm">Comments</p>
-                          <p className="text-sm">{ceremony.comments}</p>
+                          <p className="font-medium text-sm">Notes</p>
+                          <p className="text-sm">{ceremony.notes}</p>
                         </div>
                       </div>
                     </div>
@@ -376,7 +399,7 @@ export const TamilCeremonies = () => {
       {ceremonies.length === 0 && (
         <Card className="shadow-card">
           <CardContent className="p-12 text-center">
-            <Temple className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <Church className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No ceremonies planned yet. Click "Add Ceremony" to get started!</p>
           </CardContent>
         </Card>

@@ -8,7 +8,7 @@ import {
   DollarSign, 
   Calendar,
   Upload,
-  Temple,
+  Church,
   Gift,
   Flower2
 } from "lucide-react";
@@ -29,7 +29,7 @@ export const Navigation = ({ activeView, setActiveView }: NavigationProps) => {
     { id: 'budget' as ActiveView, label: 'Budget', icon: DollarSign },
     { id: 'events' as ActiveView, label: 'Events', icon: Calendar },
     { id: 'media' as ActiveView, label: 'Media', icon: Upload },
-    { id: 'tamil-ceremonies' as ActiveView, label: 'Tamil Ceremonies', icon: Temple },
+    { id: 'tamil-ceremonies' as ActiveView, label: 'Tamil Ceremonies', icon: Church },
     { id: 'seer-items' as ActiveView, label: 'Seer Items', icon: Gift },
     { id: 'pooja-items' as ActiveView, label: 'Pooja Items', icon: Flower2 },
   ];

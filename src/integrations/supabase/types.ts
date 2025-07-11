@@ -203,6 +203,90 @@ export type Database = {
         }
         Relationships: []
       }
+      pooja_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_name: string
+          notes: string | null
+          quantity_needed: number
+          ritual_name: string
+          source_info: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_name: string
+          notes?: string | null
+          quantity_needed?: number
+          ritual_name: string
+          source_info?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_name?: string
+          notes?: string | null
+          quantity_needed?: number
+          ritual_name?: string
+          source_info?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      seer_items: {
+        Row: {
+          category: string
+          created_at: string
+          delivery_date: string | null
+          delivery_status: string
+          id: string
+          image_url: string | null
+          item_name: string
+          notes: string | null
+          price_per_item: number | null
+          quantity_bought: number
+          quantity_needed: number
+          total_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          delivery_date?: string | null
+          delivery_status?: string
+          id?: string
+          image_url?: string | null
+          item_name: string
+          notes?: string | null
+          price_per_item?: number | null
+          quantity_bought?: number
+          quantity_needed?: number
+          total_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          delivery_date?: string | null
+          delivery_status?: string
+          id?: string
+          image_url?: string | null
+          item_name?: string
+          notes?: string | null
+          price_per_item?: number | null
+          quantity_bought?: number
+          quantity_needed?: number
+          total_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           created_at: string
@@ -221,6 +305,48 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tamil_ceremonies: {
+        Row: {
+          ceremony_date: string | null
+          ceremony_name: string
+          ceremony_time: string | null
+          created_at: string
+          family_roles: string | null
+          id: string
+          items_needed: string | null
+          notes: string | null
+          temple_info: string | null
+          updated_at: string
+          venue: string | null
+        }
+        Insert: {
+          ceremony_date?: string | null
+          ceremony_name: string
+          ceremony_time?: string | null
+          created_at?: string
+          family_roles?: string | null
+          id?: string
+          items_needed?: string | null
+          notes?: string | null
+          temple_info?: string | null
+          updated_at?: string
+          venue?: string | null
+        }
+        Update: {
+          ceremony_date?: string | null
+          ceremony_name?: string
+          ceremony_time?: string | null
+          created_at?: string
+          family_roles?: string | null
+          id?: string
+          items_needed?: string | null
+          notes?: string | null
+          temple_info?: string | null
+          updated_at?: string
+          venue?: string | null
         }
         Relationships: []
       }

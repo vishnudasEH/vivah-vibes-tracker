@@ -28,11 +28,16 @@ interface SeerItem {
   id: string;
   item_name: string;
   category: 'bride' | 'groom';
-  quantity: number;
-  delivery_status: 'pending' | 'delivered' | 'cancelled';
-  image_url?: string;
-  notes?: string;
+  quantity_needed: number;
+  quantity_bought: number;
+  price_per_item: number | null;
+  total_cost: number | null;
+  delivery_status: 'pending' | 'ordered' | 'delivered';
+  delivery_date: string | null;
+  notes: string | null;
+  image_url: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const SEER_ITEM_SUGGESTIONS = [
@@ -55,8 +60,11 @@ export const SeerItemsTracker = () => {
   const [formData, setFormData] = useState({
     item_name: '',
     category: 'bride' as const,
-    quantity: 1,
+    quantity_needed: 1,
+    quantity_bought: 0,
+    price_per_item: '',
     delivery_status: 'pending' as const,
+    delivery_date: '',
     notes: ''
   });
   const { toast } = useToast();
@@ -85,11 +93,18 @@ export const SeerItemsTracker = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const price = formData.price_per_item ? parseFloat(formData.price_per_item) : null;
+    const total = price && formData.quantity_bought ? price * formData.quantity_bought : null;
+    
     const itemData = {
       item_name: formData.item_name,
       category: formData.category,
-      quantity: formData.quantity,
+      quantity_needed: formData.quantity_needed,
+      quantity_bought: formData.quantity_bought,
+      price_per_item: price,
+      total_cost: total,
       delivery_status: formData.delivery_status,
+      delivery_date: formData.delivery_date || null,
       notes: formData.notes || null,
     };
 
@@ -146,8 +161,11 @@ export const SeerItemsTracker = () => {
     setFormData({
       item_name: '',
       category: 'bride',
-      quantity: 1,
+      quantity_needed: 1,
+      quantity_bought: 0,
+      price_per_item: '',
       delivery_status: 'pending',
+      delivery_date: '',
       notes: ''
     });
     setEditingItem(null);
@@ -159,8 +177,11 @@ export const SeerItemsTracker = () => {
     setFormData({
       item_name: item.item_name,
       category: item.category,
-      quantity: item.quantity,
+      quantity_needed: item.quantity_needed,
+      quantity_bought: item.quantity_bought,
+      price_per_item: item.price_per_item?.toString() || '',
       delivery_status: item.delivery_status,
+      delivery_date: item.delivery_date || '',
       notes: item.notes || ''
     });
     setIsDialogOpen(true);
@@ -169,7 +190,7 @@ export const SeerItemsTracker = () => {
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'delivered': return 'bg-green-500';
-      case 'cancelled': return 'bg-red-500';
+      case 'ordered': return 'bg-blue-500';
       default: return 'bg-yellow-500';
     }
   };
@@ -177,7 +198,7 @@ export const SeerItemsTracker = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'delivered': return <Check className="h-4 w-4" />;
-      case 'cancelled': return <X className="h-4 w-4" />;
+      case 'ordered': return <Upload className="h-4 w-4" />;
       default: return null;
     }
   };
@@ -230,21 +251,46 @@ export const SeerItemsTracker = () => {
                 <Input
                   type="number"
                   min="1"
-                  placeholder="Quantity"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                  placeholder="Quantity Needed"
+                  value={formData.quantity_needed}
+                  onChange={(e) => setFormData({ ...formData, quantity_needed: parseInt(e.target.value) || 1 })}
                   required
                 />
               </div>
-              <select
-                value={formData.delivery_status}
-                onChange={(e) => setFormData({ ...formData, delivery_status: e.target.value as 'pending' | 'delivered' | 'cancelled' })}
-                className="w-full p-2 border rounded-md"
-              >
-                <option value="pending">Pending</option>
-                <option value="delivered">Delivered</option>
-                <option value="cancelled">Cancelled</option>
-              </select>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="Quantity Bought"
+                  value={formData.quantity_bought}
+                  onChange={(e) => setFormData({ ...formData, quantity_bought: parseInt(e.target.value) || 0 })}
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Price per item"
+                  value={formData.price_per_item}
+                  onChange={(e) => setFormData({ ...formData, price_per_item: e.target.value })}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <select
+                  value={formData.delivery_status}
+                  onChange={(e) => setFormData({ ...formData, delivery_status: e.target.value as 'pending' | 'ordered' | 'delivered' })}
+                  className="p-2 border rounded-md"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="ordered">Ordered</option>
+                  <option value="delivered">Delivered</option>
+                </select>
+                <Input
+                  type="date"
+                  placeholder="Delivery Date"
+                  value={formData.delivery_date}
+                  onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
+                />
+              </div>
               <Textarea
                 placeholder="Notes & Special Instructions"
                 value={formData.notes}
@@ -317,7 +363,8 @@ export const SeerItemsTracker = () => {
                     </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Quantity: {item.quantity}
+                    {item.quantity_bought}/{item.quantity_needed} items
+                    {item.total_cost && <span> • ₹{item.total_cost}</span>}
                   </div>
                   {item.notes && (
                     <div className="text-xs text-muted-foreground mt-1">{item.notes}</div>
@@ -359,7 +406,8 @@ export const SeerItemsTracker = () => {
                     </Badge>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Quantity: {item.quantity}
+                    {item.quantity_bought}/{item.quantity_needed} items
+                    {item.total_cost && <span> • ₹{item.total_cost}</span>}
                   </div>
                   {item.notes && (
                     <div className="text-xs text-muted-foreground mt-1">{item.notes}</div>

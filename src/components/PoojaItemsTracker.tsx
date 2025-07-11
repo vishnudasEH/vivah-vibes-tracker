@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Dialog,
   DialogContent,
@@ -30,9 +29,10 @@ interface PoojaItem {
   ritual_name: string;
   quantity_needed: number;
   status: 'needed' | 'bought' | 'pending';
-  source_info?: string;
-  notes?: string;
+  source_info?: string | null;
+  notes?: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const RITUAL_TEMPLATES = [
