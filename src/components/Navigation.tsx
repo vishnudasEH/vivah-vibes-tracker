@@ -10,13 +10,13 @@ import {
   Upload,
   Church,
   Gift,
-  Flower2,
   Plane,
   Mail,
-  Bell
+  Bell,
+  MessageSquare
 } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'pooja-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging';
 
 interface NavigationProps {
   activeView: ActiveView;
@@ -30,14 +30,13 @@ export const Navigation = ({ activeView, setActiveView }: NavigationProps) => {
     { id: 'guests' as ActiveView, label: 'Guests', icon: Users },
     { id: 'vendors' as ActiveView, label: 'Vendors', icon: Store },
     { id: 'budget' as ActiveView, label: 'Budget', icon: DollarSign },
-    { id: 'events' as ActiveView, label: 'Events', icon: Calendar },
     { id: 'media' as ActiveView, label: 'Media', icon: Upload },
     { id: 'tamil-ceremonies' as ActiveView, label: 'Tamil Ceremonies', icon: Church },
     { id: 'seer-items' as ActiveView, label: 'Seer Items', icon: Gift },
-    { id: 'pooja-items' as ActiveView, label: 'Pooja Items', icon: Flower2 },
     { id: 'guest-travel' as ActiveView, label: 'Guest Travel', icon: Plane },
     { id: 'invitation-tracker' as ActiveView, label: 'Invitations', icon: Mail },
     { id: 'event-reminders' as ActiveView, label: 'Reminders', icon: Bell },
+    { id: 'messaging' as ActiveView, label: 'Messaging', icon: MessageSquare },
   ];
 
   return (

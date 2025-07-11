@@ -6,19 +6,18 @@ import { TaskTracker } from "@/components/TaskTracker";
 import { GuestTracker } from "@/components/GuestTracker";
 import { VendorTracker } from "@/components/VendorTracker";
 import { BudgetTracker } from "@/components/BudgetTracker";
-import { EventSchedule } from "@/components/EventSchedule";
 import { MediaUpload } from "@/components/MediaUpload";
 import { TamilCeremonies } from "@/components/TamilCeremonies";
 import { SeerItemsTracker } from "@/components/SeerItemsTracker";
-import { PoojaItemsTracker } from "@/components/PoojaItemsTracker";
 import { GuestTravelPlanner } from "@/components/GuestTravelPlanner";
 import { InvitationTracker } from "@/components/InvitationTracker";
 import { EventReminders } from "@/components/EventReminders";
+import { MessagingService } from "@/components/MessagingService";
 import { Login } from "@/components/Login";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'pooja-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -55,22 +54,20 @@ const Index = () => {
         return <VendorTracker />;
       case 'budget':
         return <BudgetTracker />;
-      case 'events':
-        return <EventSchedule />;
       case 'media':
         return <MediaUpload />;
       case 'tamil-ceremonies':
         return <TamilCeremonies />;
       case 'seer-items':
         return <SeerItemsTracker />;
-      case 'pooja-items':
-        return <PoojaItemsTracker />;
       case 'guest-travel':
         return <GuestTravelPlanner />;
       case 'invitation-tracker':
         return <InvitationTracker />;
       case 'event-reminders':
         return <EventReminders />;
+      case 'messaging':
+        return <MessagingService />;
       default:
         return <Dashboard />;
     }

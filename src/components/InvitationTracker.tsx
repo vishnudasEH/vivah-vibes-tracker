@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus,
@@ -29,11 +30,14 @@ import {
   Clock,
   Edit,
   Trash2,
-  Phone
+  Phone,
+  Users,
+  Send
 } from "lucide-react";
 
 interface Invitation {
   id: string;
+  guest_id: string;
   guest_name: string;
   contact_info: string;
   invitation_method: 'whatsapp' | 'email' | 'printed_card' | 'phone_call';
@@ -45,13 +49,21 @@ interface Invitation {
   updated_at: string;
 }
 
+interface Guest {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  rsvp_status: string;
+}
+
 export const InvitationTracker = () => {
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [guests, setGuests] = useState<Guest[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingInvitation, setEditingInvitation] = useState<Invitation | null>(null);
   const [formData, setFormData] = useState({
-    guest_name: '',
-    contact_info: '',
+    guest_id: '',
     invitation_method: 'whatsapp' as Invitation['invitation_method'],
     status: 'sent' as Invitation['status'],
     sent_date: '',
@@ -60,26 +72,72 @@ export const InvitationTracker = () => {
   });
   const { toast } = useToast();
 
+  useEffect(() => {
+    fetchInvitations();
+    fetchGuests();
+  }, []);
+
+  const fetchGuests = async () => {
+    const { data, error } = await supabase
+      .from('guests')
+      .select('id, name, phone, email, rsvp_status')
+      .order('name', { ascending: true });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch guests",
+        variant: "destructive",
+      });
+    } else {
+      setGuests(data || []);
+    }
+  };
+
+  const fetchInvitations = async () => {
+    // Since invitations are stored locally for now
+    const stored = localStorage.getItem('wedding-invitations');
+    if (stored) {
+      setInvitations(JSON.parse(stored));
+    }
+  };
+
+  const saveInvitations = (invites: Invitation[]) => {
+    localStorage.setItem('wedding-invitations', JSON.stringify(invites));
+    setInvitations(invites);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const selectedGuest = guests.find(g => g.id === formData.guest_id);
+    if (!selectedGuest) return;
+
     const newInvitation: Invitation = {
       id: Date.now().toString(),
-      ...formData,
+      guest_id: selectedGuest.id,
+      guest_name: selectedGuest.name,
+      contact_info: formData.invitation_method === 'email' ? selectedGuest.email || '' : selectedGuest.phone || '',
+      invitation_method: formData.invitation_method,
+      status: formData.status,
+      sent_date: formData.sent_date,
+      response_date: formData.response_date,
+      notes: formData.notes,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
 
     if (editingInvitation) {
-      setInvitations(prev => prev.map(inv => 
+      const updated = invitations.map(inv => 
         inv.id === editingInvitation.id ? { ...newInvitation, id: editingInvitation.id } : inv
-      ));
+      );
+      saveInvitations(updated);
       toast({
         title: "Success",
         description: "Invitation updated successfully",
       });
     } else {
-      setInvitations(prev => [...prev, newInvitation]);
+      saveInvitations([...invitations, newInvitation]);
       toast({
         title: "Success",
         description: "Invitation added successfully",
@@ -90,7 +148,8 @@ export const InvitationTracker = () => {
   };
 
   const handleDelete = (id: string) => {
-    setInvitations(prev => prev.filter(inv => inv.id !== id));
+    const filtered = invitations.filter(inv => inv.id !== id);
+    saveInvitations(filtered);
     toast({
       title: "Success",
       description: "Invitation deleted successfully",
@@ -99,8 +158,7 @@ export const InvitationTracker = () => {
 
   const resetForm = () => {
     setFormData({
-      guest_name: '',
-      contact_info: '',
+      guest_id: '',
       invitation_method: 'whatsapp',
       status: 'sent',
       sent_date: '',
@@ -114,8 +172,7 @@ export const InvitationTracker = () => {
   const handleEdit = (invitation: Invitation) => {
     setEditingInvitation(invitation);
     setFormData({
-      guest_name: invitation.guest_name,
-      contact_info: invitation.contact_info,
+      guest_id: invitation.guest_id,
       invitation_method: invitation.invitation_method,
       status: invitation.status,
       sent_date: invitation.sent_date || '',
@@ -126,7 +183,7 @@ export const InvitationTracker = () => {
   };
 
   const updateStatus = (id: string, newStatus: Invitation['status']) => {
-    setInvitations(prev => prev.map(inv => 
+    const updated = invitations.map(inv => 
       inv.id === id 
         ? { 
             ...inv, 
@@ -135,10 +192,50 @@ export const InvitationTracker = () => {
             updated_at: new Date().toISOString()
           } 
         : inv
-    ));
+    );
+    saveInvitations(updated);
     toast({
       title: "Success",
       description: "Invitation status updated",
+    });
+  };
+
+  const sendWhatsAppMessage = (phoneNumber: string, guestName: string) => {
+    const message = `Dear ${guestName}, you are cordially invited to our Tamil wedding ceremony. We would be honored by your presence on this special day. Please confirm your attendance. With warm regards.`;
+    const whatsappUrl = `https://wa.me/${phoneNumber.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "WhatsApp Opened",
+      description: "WhatsApp message opened in new tab",
+    });
+  };
+
+  const sendBulkWhatsAppMessages = () => {
+    const pendingInvites = invitations.filter(inv => 
+      inv.invitation_method === 'whatsapp' && 
+      inv.status === 'sent' && 
+      inv.contact_info
+    );
+
+    if (pendingInvites.length === 0) {
+      toast({
+        title: "No Messages to Send",
+        description: "No pending WhatsApp invitations found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    pendingInvites.forEach((invite, index) => {
+      setTimeout(() => {
+        sendWhatsAppMessage(invite.contact_info, invite.guest_name);
+      }, index * 2000); // 2 second delay between messages
+    });
+
+    toast({
+      title: "Bulk Messages Initiated",
+      description: `Sending ${pendingInvites.length} WhatsApp messages`,
     });
   };
 
@@ -209,99 +306,106 @@ export const InvitationTracker = () => {
           <h1 className="text-3xl font-bold text-foreground">Invitation Tracker</h1>
           <p className="text-muted-foreground">Track invitation methods and responses from guests</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="celebration" onClick={() => resetForm()}>
-              <Plus className="h-4 w-4" />
-              Add Invitation
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingInvitation ? 'Edit Invitation' : 'Add New Invitation'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Input
-                  placeholder="Guest Name"
-                  value={formData.guest_name}
-                  onChange={(e) => setFormData({ ...formData, guest_name: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Input
-                  placeholder="Contact Info (phone/email)"
-                  value={formData.contact_info}
-                  onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Select value={formData.invitation_method} onValueChange={(value: Invitation['invitation_method']) => setFormData({ ...formData, invitation_method: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Invitation Method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="printed_card">Printed Card</SelectItem>
-                    <SelectItem value="phone_call">Phone Call</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div>
-                <Select value={formData.status} onValueChange={(value: Invitation['status']) => setFormData({ ...formData, status: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="sent">Sent</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                    <SelectItem value="accepted">Accepted</SelectItem>
-                    <SelectItem value="declined">Declined</SelectItem>
-                    <SelectItem value="no_response">No Response</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Input
-                  type="date"
-                  placeholder="Sent Date"
-                  value={formData.sent_date}
-                  onChange={(e) => setFormData({ ...formData, sent_date: e.target.value })}
-                />
-                <Input
-                  type="date"
-                  placeholder="Response Date"
-                  value={formData.response_date}
-                  onChange={(e) => setFormData({ ...formData, response_date: e.target.value })}
-                />
-              </div>
-              
-              <div>
-                <Textarea
-                  placeholder="Notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1 celebration">
-                  {editingInvitation ? 'Update' : 'Add'} Invitation
-                </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button onClick={sendBulkWhatsAppMessages} className="bg-green-600 hover:bg-green-700">
+            <Send className="h-4 w-4 mr-2" />
+            Send WhatsApp Bulk
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="celebration" onClick={() => resetForm()}>
+                <Plus className="h-4 w-4" />
+                Add Invitation
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>{editingInvitation ? 'Edit Invitation' : 'Add New Invitation'}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Select value={formData.guest_id} onValueChange={(value) => setFormData({ ...formData, guest_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Guest" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {guests.map((guest) => (
+                        <SelectItem key={guest.id} value={guest.id}>
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            {guest.name}
+                            {guest.phone && ` (${guest.phone})`}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Select value={formData.invitation_method} onValueChange={(value: Invitation['invitation_method']) => setFormData({ ...formData, invitation_method: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Invitation Method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="printed_card">Printed Card</SelectItem>
+                      <SelectItem value="phone_call">Phone Call</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Select value={formData.status} onValueChange={(value: Invitation['status']) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sent">Sent</SelectItem>
+                      <SelectItem value="delivered">Delivered</SelectItem>
+                      <SelectItem value="accepted">Accepted</SelectItem>
+                      <SelectItem value="declined">Declined</SelectItem>
+                      <SelectItem value="no_response">No Response</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    type="date"
+                    placeholder="Sent Date"
+                    value={formData.sent_date}
+                    onChange={(e) => setFormData({ ...formData, sent_date: e.target.value })}
+                  />
+                  <Input
+                    type="date"
+                    placeholder="Response Date"
+                    value={formData.response_date}
+                    onChange={(e) => setFormData({ ...formData, response_date: e.target.value })}
+                  />
+                </div>
+                
+                <div>
+                  <Textarea
+                    placeholder="Notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  />
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1 celebration">
+                    {editingInvitation ? 'Update' : 'Add'} Invitation
+                  </Button>
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -349,6 +453,16 @@ export const InvitationTracker = () => {
                     <h3 className="text-lg font-semibold">{invitation.guest_name}</h3>
                     {getMethodBadge(invitation.invitation_method)}
                     {getStatusBadge(invitation.status)}
+                    {invitation.invitation_method === 'whatsapp' && invitation.contact_info && (
+                      <Button 
+                        size="sm" 
+                        onClick={() => sendWhatsAppMessage(invitation.contact_info, invitation.guest_name)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        WhatsApp
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="text-sm text-muted-foreground mb-3">
