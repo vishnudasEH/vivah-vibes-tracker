@@ -19,38 +19,14 @@ import {
   Calendar,
   Clock,
   MapPin,
+  Church,
   FileText,
   Edit,
-  Trash2,
-  Church
+  Trash2
 } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
-interface TamilCeremony {
-  id: string;
-  ceremony_name: string;
-  ceremony_date: string | null;
-  ceremony_time: string | null;
-  venue: string | null;
-  temple_info: string | null;
-  items_needed: string | null;
-  family_roles: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-const TAMIL_CEREMONY_TEMPLATES = [
-  'Nichayathartham (Engagement)',
-  'Panda Kaal Muhurtham',
-  'Nalangu',
-  'Temple Marriage',
-  'Reception',
-  'Seemantham',
-  'Jathakam Exchange',
-  'Mangalya Dharanam',
-  'Saptapadi',
-  'Grihapravesh'
-];
+type TamilCeremony = Tables<'tamil_ceremonies'>;
 
 export const TamilCeremonies = () => {
   const [ceremonies, setCeremonies] = useState<TamilCeremony[]>([]);
@@ -67,6 +43,34 @@ export const TamilCeremonies = () => {
     notes: ''
   });
   const { toast } = useToast();
+
+  const ceremonyTemplates = [
+    {
+      name: "Nichayathartham (Engagement)",
+      items: "Gold jewelry, Fruits, Sweets, Sarees, Sacred thread",
+      roles: "Parents, Close relatives, Purohit"
+    },
+    {
+      name: "Panda Kaal Muhurtham",
+      items: "Banana leaves, Turmeric, Kumkum, Rice, Coconuts",
+      roles: "Mama (Uncle), Aunts, Family elders"
+    },
+    {
+      name: "Nalangu (Pre-wedding ceremony)",
+      items: "Oil, Turmeric paste, New clothes, Bangles",
+      roles: "Married women, Sisters, Cousins"
+    },
+    {
+      name: "Temple Marriage (Kalyanam)",
+      items: "Mangalsutra, Toe rings, Sacred fire items, Prasadam",
+      roles: "Purohit, Parents, Witnesses, Relatives"
+    },
+    {
+      name: "Reception",
+      items: "Garlands, Stage decorations, Return gifts",
+      roles: "Event coordinator, Family friends, Relatives"
+    }
+  ];
 
   useEffect(() => {
     fetchCeremonies();
@@ -182,7 +186,16 @@ export const TamilCeremonies = () => {
     setIsDialogOpen(true);
   };
 
-  const formatDate = (dateString: string | null) => {
+  const useTemplate = (template: typeof ceremonyTemplates[0]) => {
+    setFormData({
+      ...formData,
+      ceremony_name: template.name,
+      items_needed: template.items,
+      family_roles: template.roles
+    });
+  };
+
+  const formatDate = (dateString?: string) => {
     if (!dateString) return null;
     return new Date(dateString).toLocaleDateString('en-IN', {
       weekday: 'long',
@@ -192,7 +205,7 @@ export const TamilCeremonies = () => {
     });
   };
 
-  const formatTime = (timeString?: string | null) => {
+  const formatTime = (timeString?: string) => {
     if (!timeString) return null;
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-IN', {
       hour: '2-digit',
@@ -206,8 +219,8 @@ export const TamilCeremonies = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Tamil Wedding Ceremonies</h1>
-          <p className="text-muted-foreground">Plan traditional Tamil wedding ceremonies and rituals</p>
+          <h1 className="text-3xl font-bold text-foreground">Tamil Ceremonies</h1>
+          <p className="text-muted-foreground">Plan and track traditional Tamil wedding ceremonies</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -216,27 +229,46 @@ export const TamilCeremonies = () => {
               Add Ceremony
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCeremony ? 'Edit Ceremony' : 'Add New Ceremony'}</DialogTitle>
             </DialogHeader>
+            
+            {/* Templates */}
+            {!editingCeremony && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Quick Templates:</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {ceremonyTemplates.map((template, index) => (
+                    <Button
+                      key={index}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => useTemplate(template)}
+                      className="text-left h-auto p-2"
+                    >
+                      <div>
+                        <div className="font-medium text-xs">{template.name}</div>
+                      </div>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <select
+                <Input
+                  placeholder="Ceremony Name"
                   value={formData.ceremony_name}
                   onChange={(e) => setFormData({ ...formData, ceremony_name: e.target.value })}
-                  className="w-full p-2 border rounded-md"
                   required
-                >
-                  <option value="">Select a ceremony...</option>
-                  {TAMIL_CEREMONY_TEMPLATES.map((template) => (
-                    <option key={template} value={template}>{template}</option>
-                  ))}
-                </select>
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Input
                   type="date"
+                  placeholder="Ceremony Date"
                   value={formData.ceremony_date}
                   onChange={(e) => setFormData({ ...formData, ceremony_date: e.target.value })}
                 />
@@ -247,31 +279,41 @@ export const TamilCeremonies = () => {
                   onChange={(e) => setFormData({ ...formData, ceremony_time: e.target.value })}
                 />
               </div>
-              <Input
-                placeholder="Venue"
-                value={formData.venue}
-                onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
-              />
-              <Textarea
-                placeholder="Temple Information (Name, Address, Contact)"
-                value={formData.temple_info}
-                onChange={(e) => setFormData({ ...formData, temple_info: e.target.value })}
-              />
-              <Textarea
-                placeholder="Items Needed (Flowers, Fruits, Sacred Items, etc.)"
-                value={formData.items_needed}
-                onChange={(e) => setFormData({ ...formData, items_needed: e.target.value })}
-              />
-              <Textarea
-                placeholder="Family Roles (Who does what, assignments)"
-                value={formData.family_roles}
-                onChange={(e) => setFormData({ ...formData, family_roles: e.target.value })}
-              />
-              <Textarea
-                placeholder="Notes & Special Instructions"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
+              <div>
+                <Input
+                  placeholder="Venue"
+                  value={formData.venue}
+                  onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
+                />
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Temple Info (priest details, booking info, special instructions)"
+                  value={formData.temple_info}
+                  onChange={(e) => setFormData({ ...formData, temple_info: e.target.value })}
+                />
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Items Needed (list all required items for this ceremony)"
+                  value={formData.items_needed}
+                  onChange={(e) => setFormData({ ...formData, items_needed: e.target.value })}
+                />
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Family Roles (who does what, responsibilities)"
+                  value={formData.family_roles}
+                  onChange={(e) => setFormData({ ...formData, family_roles: e.target.value })}
+                />
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Additional Notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1 celebration">
                   {editingCeremony ? 'Update' : 'Add'} Ceremony
@@ -285,93 +327,104 @@ export const TamilCeremonies = () => {
         </Dialog>
       </div>
 
-      {/* Ceremonies List */}
-      <div className="grid gap-4">
-        {ceremonies.map((ceremony) => (
+      {/* Ceremonies Timeline */}
+      <div className="space-y-4">
+        {ceremonies.map((ceremony, index) => (
           <Card key={ceremony.id} className="shadow-card hover:shadow-elegant transition-all">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <Church className="h-5 w-5 text-primary" />
-                    <h3 className="text-xl font-semibold">{ceremony.ceremony_name}</h3>
+                <div className="flex items-start gap-4 flex-1">
+                  {/* Timeline Indicator */}
+                  <div className="flex flex-col items-center">
+                    <div className="w-4 h-4 rounded-full bg-primary" />
+                    {index < ceremonies.length - 1 && (
+                      <div className="w-0.5 h-16 bg-muted mt-2" />
+                    )}
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
-                    {ceremony.ceremony_date && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(ceremony.ceremony_date)}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-xl font-semibold">{ceremony.ceremony_name}</h3>
+                      <Badge className="bg-primary text-primary-foreground">Tamil Ceremony</Badge>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+                      {ceremony.ceremony_date && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          {formatDate(ceremony.ceremony_date)}
+                        </div>
+                      )}
+                      
+                      {ceremony.ceremony_time && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          {formatTime(ceremony.ceremony_time)}
+                        </div>
+                      )}
+                      
+                      {ceremony.venue && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <MapPin className="h-4 w-4" />
+                          {ceremony.venue}
+                        </div>
+                      )}
+                      
+                      {ceremony.temple_info && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Church className="h-4 w-4" />
+                          Temple Info Available
+                        </div>
+                      )}
+                    </div>
+                    
+                    {ceremony.temple_info && (
+                      <div className="mb-4 p-3 bg-muted rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <Church className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="font-medium text-sm mb-1">Temple Information</p>
+                            <p className="text-sm">{ceremony.temple_info}</p>
+                          </div>
+                        </div>
                       </div>
                     )}
                     
-                    {ceremony.ceremony_time && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {formatTime(ceremony.ceremony_time)}
+                    {ceremony.items_needed && (
+                      <div className="mb-4 p-3 bg-muted rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="font-medium text-sm mb-1">Items Needed</p>
+                            <p className="text-sm">{ceremony.items_needed}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {ceremony.family_roles && (
+                      <div className="mb-4 p-3 bg-muted rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <div>
+                            <p className="font-medium text-sm mb-1">Family Roles & Responsibilities</p>
+                            <p className="text-sm">{ceremony.family_roles}</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {ceremony.notes && (
+                      <div className="p-3 bg-muted rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
+                          <div>
+                            <p className="font-medium text-sm mb-1">Additional Notes</p>
+                            <p className="text-sm">{ceremony.notes}</p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
-                  
-                  {ceremony.venue && (
-                    <div className="mb-3 p-3 bg-muted rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="font-medium text-sm">Venue</p>
-                          <p className="text-sm">{ceremony.venue}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {ceremony.temple_info && (
-                    <div className="mb-3 p-3 bg-muted rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <Church className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="font-medium text-sm">Temple Information</p>
-                          <p className="text-sm">{ceremony.temple_info}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {ceremony.items_needed && (
-                    <div className="mb-3 p-3 bg-muted rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="font-medium text-sm">Items Needed</p>
-                          <p className="text-sm">{ceremony.items_needed}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {ceremony.family_roles && (
-                    <div className="mb-3 p-3 bg-muted rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="font-medium text-sm">Family Roles</p>
-                          <p className="text-sm">{ceremony.family_roles}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {ceremony.notes && (
-                    <div className="p-3 bg-muted rounded-lg">
-                      <div className="flex items-start gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                        <div>
-                          <p className="font-medium text-sm">Notes</p>
-                          <p className="text-sm">{ceremony.notes}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
                 
                 <div className="flex gap-2">

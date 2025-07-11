@@ -11,11 +11,14 @@ import { MediaUpload } from "@/components/MediaUpload";
 import { TamilCeremonies } from "@/components/TamilCeremonies";
 import { SeerItemsTracker } from "@/components/SeerItemsTracker";
 import { PoojaItemsTracker } from "@/components/PoojaItemsTracker";
+import { GuestTravelPlanner } from "@/components/GuestTravelPlanner";
+import { InvitationTracker } from "@/components/InvitationTracker";
+import { EventReminders } from "@/components/EventReminders";
 import { Login } from "@/components/Login";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'pooja-items';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'pooja-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -62,6 +65,12 @@ const Index = () => {
         return <SeerItemsTracker />;
       case 'pooja-items':
         return <PoojaItemsTracker />;
+      case 'guest-travel':
+        return <GuestTravelPlanner />;
+      case 'invitation-tracker':
+        return <InvitationTracker />;
+      case 'event-reminders':
+        return <EventReminders />;
       default:
         return <Dashboard />;
     }

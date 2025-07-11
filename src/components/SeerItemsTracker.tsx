@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
   Dialog,
   DialogContent,
   DialogHeader,
@@ -17,67 +24,43 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus,
   Gift,
-  Upload,
+  Truck,
+  DollarSign,
+  Package,
   Edit,
   Trash2,
-  Check,
-  X
+  Calendar
 } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
-interface SeerItem {
-  id: string;
-  item_name: string;
-  category: 'bride' | 'groom';
-  quantity_needed: number;
-  quantity_bought: number;
-  price_per_item: number | null;
-  total_cost: number | null;
-  delivery_status: 'pending' | 'ordered' | 'delivered';
-  delivery_date: string | null;
-  notes: string | null;
-  image_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-const SEER_ITEM_SUGGESTIONS = [
-  'Silk Saree',
-  'Gold Jewelry Set',
-  'Silver Items',
-  'Fruits & Sweets',
-  'Coconut & Betel Leaves',
-  'Turmeric & Kumkum',
-  'Sacred Thread',
-  'Dhoti & Veshti',
-  'Flowers Garland',
-  'Bangles Set'
-];
+type SeerItem = Tables<'seer_items'>;
 
 export const SeerItemsTracker = () => {
-  const [seerItems, setSeerItems] = useState<SeerItem[]>([]);
+  const [items, setItems] = useState<SeerItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<SeerItem | null>(null);
   const [formData, setFormData] = useState({
     item_name: '',
-    category: 'bride' as const,
+    category: 'bride' as SeerItem['category'],
     quantity_needed: 1,
     quantity_bought: 0,
-    price_per_item: '',
-    delivery_status: 'pending' as const,
+    price_per_item: 0,
+    delivery_status: 'pending' as SeerItem['delivery_status'],
     delivery_date: '',
-    notes: ''
+    notes: '',
+    image_url: ''
   });
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchSeerItems();
+    fetchItems();
   }, []);
 
-  const fetchSeerItems = async () => {
+  const fetchItems = async () => {
     const { data, error } = await supabase
       .from('seer_items')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('category', { ascending: true });
 
     if (error) {
       toast({
@@ -86,26 +69,26 @@ export const SeerItemsTracker = () => {
         variant: "destructive",
       });
     } else {
-      setSeerItems(data || []);
+      setItems(data || []);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const price = formData.price_per_item ? parseFloat(formData.price_per_item) : null;
-    const total = price && formData.quantity_bought ? price * formData.quantity_bought : null;
+    const totalCost = formData.price_per_item * formData.quantity_bought;
     
     const itemData = {
       item_name: formData.item_name,
       category: formData.category,
       quantity_needed: formData.quantity_needed,
       quantity_bought: formData.quantity_bought,
-      price_per_item: price,
-      total_cost: total,
+      price_per_item: formData.price_per_item || null,
+      total_cost: totalCost || null,
       delivery_status: formData.delivery_status,
       delivery_date: formData.delivery_date || null,
       notes: formData.notes || null,
+      image_url: formData.image_url || null,
     };
 
     let error;
@@ -123,7 +106,7 @@ export const SeerItemsTracker = () => {
     if (error) {
       toast({
         title: "Error",
-        description: `Failed to ${editingItem ? 'update' : 'add'} seer item`,
+        description: `Failed to ${editingItem ? 'update' : 'create'} seer item`,
         variant: "destructive",
       });
     } else {
@@ -132,7 +115,7 @@ export const SeerItemsTracker = () => {
         description: `Seer item ${editingItem ? 'updated' : 'added'} successfully`,
       });
       resetForm();
-      fetchSeerItems();
+      fetchItems();
     }
   };
 
@@ -153,7 +136,7 @@ export const SeerItemsTracker = () => {
         title: "Success",
         description: "Seer item deleted successfully",
       });
-      fetchSeerItems();
+      fetchItems();
     }
   };
 
@@ -163,10 +146,11 @@ export const SeerItemsTracker = () => {
       category: 'bride',
       quantity_needed: 1,
       quantity_bought: 0,
-      price_per_item: '',
+      price_per_item: 0,
       delivery_status: 'pending',
       delivery_date: '',
-      notes: ''
+      notes: '',
+      image_url: ''
     });
     setEditingItem(null);
     setIsDialogOpen(false);
@@ -179,32 +163,63 @@ export const SeerItemsTracker = () => {
       category: item.category,
       quantity_needed: item.quantity_needed,
       quantity_bought: item.quantity_bought,
-      price_per_item: item.price_per_item?.toString() || '',
+      price_per_item: item.price_per_item || 0,
       delivery_status: item.delivery_status,
       delivery_date: item.delivery_date || '',
-      notes: item.notes || ''
+      notes: item.notes || '',
+      image_url: item.image_url || ''
     });
     setIsDialogOpen(true);
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'delivered': return 'bg-green-500';
-      case 'ordered': return 'bg-blue-500';
-      default: return 'bg-yellow-500';
+  const toggleDeliveryStatus = async (itemId: string, currentStatus: SeerItem['delivery_status']) => {
+    const statusOrder: SeerItem['delivery_status'][] = ['pending', 'ordered', 'delivered'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const nextIndex = (currentIndex + 1) % statusOrder.length;
+    const newStatus = statusOrder[nextIndex];
+
+    const { error } = await supabase
+      .from('seer_items')
+      .update({ delivery_status: newStatus })
+      .eq('id', itemId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update delivery status",
+        variant: "destructive",
+      });
+    } else {
+      fetchItems();
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getDeliveryBadge = (status: string) => {
     switch (status) {
-      case 'delivered': return <Check className="h-4 w-4" />;
-      case 'ordered': return <Upload className="h-4 w-4" />;
-      default: return null;
+      case 'delivered':
+        return <Badge className="bg-success text-success-foreground">Delivered</Badge>;
+      case 'ordered':
+        return <Badge className="bg-secondary text-secondary-foreground">Ordered</Badge>;
+      default:
+        return <Badge variant="outline">Pending</Badge>;
     }
   };
 
-  const brideItems = seerItems.filter(item => item.category === 'bride');
-  const groomItems = seerItems.filter(item => item.category === 'groom');
+  const getCategoryBadge = (category: string) => {
+    return category === 'bride' 
+      ? <Badge className="bg-primary text-primary-foreground">Bride</Badge>
+      : <Badge className="bg-accent text-accent-foreground">Groom</Badge>;
+  };
+
+  const brideItems = items.filter(item => item.category === 'bride');
+  const groomItems = items.filter(item => item.category === 'groom');
+  
+  const stats = {
+    totalItems: items.length,
+    totalCost: items.reduce((sum, item) => sum + (item.total_cost || 0), 0),
+    delivered: items.filter(i => i.delivery_status === 'delivered').length,
+    pending: items.filter(i => i.delivery_status === 'pending').length,
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -212,7 +227,7 @@ export const SeerItemsTracker = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Seer Items Tracker</h1>
-          <p className="text-muted-foreground">Manage traditional gift items for bride and groom</p>
+          <p className="text-muted-foreground">Track traditional gift items for bride and groom</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -221,69 +236,70 @@ export const SeerItemsTracker = () => {
               Add Seer Item
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>{editingItem ? 'Edit Seer Item' : 'Add New Seer Item'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <select
+                <Input
+                  placeholder="Item Name (e.g., Sarees, Jewelry, Watch)"
                   value={formData.item_name}
                   onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
-                  className="w-full p-2 border rounded-md"
                   required
-                >
-                  <option value="">Select an item...</option>
-                  {SEER_ITEM_SUGGESTIONS.map((item) => (
-                    <option key={item} value={item}>{item}</option>
-                  ))}
-                </select>
+                />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as 'bride' | 'groom' })}
-                  className="p-2 border rounded-md"
-                >
-                  <option value="bride">For Bride</option>
-                  <option value="groom">For Groom</option>
-                </select>
+              <div>
+                <Select value={formData.category} onValueChange={(value: SeerItem['category']) => setFormData({ ...formData, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bride">Bride</SelectItem>
+                    <SelectItem value="groom">Groom</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
                 <Input
+                  placeholder="Qty Needed"
                   type="number"
                   min="1"
-                  placeholder="Quantity Needed"
                   value={formData.quantity_needed}
                   onChange={(e) => setFormData({ ...formData, quantity_needed: parseInt(e.target.value) || 1 })}
                   required
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <Input
+                  placeholder="Qty Bought"
                   type="number"
                   min="0"
-                  placeholder="Quantity Bought"
                   value={formData.quantity_bought}
                   onChange={(e) => setFormData({ ...formData, quantity_bought: parseInt(e.target.value) || 0 })}
                 />
+              </div>
+              <div>
                 <Input
+                  placeholder="Price per Item"
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder="Price per item"
                   value={formData.price_per_item}
-                  onChange={(e) => setFormData({ ...formData, price_per_item: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, price_per_item: parseFloat(e.target.value) || 0 })}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <select
-                  value={formData.delivery_status}
-                  onChange={(e) => setFormData({ ...formData, delivery_status: e.target.value as 'pending' | 'ordered' | 'delivered' })}
-                  className="p-2 border rounded-md"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="ordered">Ordered</option>
-                  <option value="delivered">Delivered</option>
-                </select>
+              <div>
+                <Select value={formData.delivery_status} onValueChange={(value: SeerItem['delivery_status']) => setFormData({ ...formData, delivery_status: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Delivery Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="ordered">Ordered</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Input
                   type="date"
                   placeholder="Delivery Date"
@@ -291,11 +307,13 @@ export const SeerItemsTracker = () => {
                   onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })}
                 />
               </div>
-              <Textarea
-                placeholder="Notes & Special Instructions"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
+              <div>
+                <Textarea
+                  placeholder="Notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1 celebration">
                   {editingItem ? 'Update' : 'Add'} Item
@@ -309,126 +327,180 @@ export const SeerItemsTracker = () => {
         </Dialog>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{brideItems.length}</div>
-            <div className="text-sm text-muted-foreground">Bride Items</div>
+            <div className="text-2xl font-bold text-primary">{stats.totalItems}</div>
+            <p className="text-sm text-muted-foreground">Total Items</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{groomItems.length}</div>
-            <div className="text-sm text-muted-foreground">Groom Items</div>
+            <div className="text-2xl font-bold text-success">₹{stats.totalCost.toLocaleString()}</div>
+            <p className="text-sm text-muted-foreground">Total Cost</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {seerItems.filter(item => item.delivery_status === 'delivered').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Delivered</div>
+            <div className="text-2xl font-bold text-success">{stats.delivered}</div>
+            <p className="text-sm text-muted-foreground">Delivered</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">
-              {seerItems.filter(item => item.delivery_status === 'pending').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Pending</div>
+            <div className="text-2xl font-bold text-secondary">{stats.pending}</div>
+            <p className="text-sm text-muted-foreground">Pending</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Items by Category */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bride Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gift className="h-5 w-5 text-pink-500" />
-              Bride Items ({brideItems.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+      {/* Bride Items */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Gift className="h-5 w-5 text-primary" />
+            Bride Items
+            <Badge variant="outline">{brideItems.length} items</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
             {brideItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div 
+                key={item.id} 
+                className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{item.item_name}</span>
-                    <Badge className={`${getStatusBadgeColor(item.delivery_status)} text-white text-xs`}>
-                      {getStatusIcon(item.delivery_status)}
-                      {item.delivery_status}
-                    </Badge>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h4 className="font-medium">{item.item_name}</h4>
+                    <Badge variant="outline">{item.quantity_bought}/{item.quantity_needed}</Badge>
+                    {getDeliveryBadge(item.delivery_status)}
+                    {item.total_cost && (
+                      <Badge variant="outline" className="text-success">
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        ₹{item.total_cost.toLocaleString()}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {item.quantity_bought}/{item.quantity_needed} items
-                    {item.total_cost && <span> • ₹{item.total_cost}</span>}
-                  </div>
+                  {item.delivery_date && (
+                    <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Delivery: {new Date(item.delivery_date).toLocaleDateString()}
+                    </p>
+                  )}
                   {item.notes && (
-                    <div className="text-xs text-muted-foreground mt-1">{item.notes}</div>
+                    <p className="text-sm text-muted-foreground">{item.notes}</p>
                   )}
                 </div>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>
-                    <Edit className="h-3 w-3" />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleDeliveryStatus(item.id, item.delivery_status)}
+                    className="flex items-center gap-2"
+                  >
+                    <Truck className="h-4 w-4" />
+                    Update Status
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(item.id)}>
-                    <Trash2 className="h-3 w-3" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             ))}
-            {brideItems.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No bride items added yet</p>
-            )}
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Groom Items */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gift className="h-5 w-5 text-blue-500" />
-              Groom Items ({groomItems.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+      {/* Groom Items */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-accent" />
+            Groom Items
+            <Badge variant="outline">{groomItems.length} items</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
             {groomItems.map((item) => (
-              <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div 
+                key={item.id} 
+                className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{item.item_name}</span>
-                    <Badge className={`${getStatusBadgeColor(item.delivery_status)} text-white text-xs`}>
-                      {getStatusIcon(item.delivery_status)}
-                      {item.delivery_status}
-                    </Badge>
+                  <div className="flex items-center gap-3 mb-2">
+                    <h4 className="font-medium">{item.item_name}</h4>
+                    <Badge variant="outline">{item.quantity_bought}/{item.quantity_needed}</Badge>
+                    {getDeliveryBadge(item.delivery_status)}
+                    {item.total_cost && (
+                      <Badge variant="outline" className="text-success">
+                        <DollarSign className="h-3 w-3 mr-1" />
+                        ₹{item.total_cost.toLocaleString()}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {item.quantity_bought}/{item.quantity_needed} items
-                    {item.total_cost && <span> • ₹{item.total_cost}</span>}
-                  </div>
+                  {item.delivery_date && (
+                    <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Delivery: {new Date(item.delivery_date).toLocaleDateString()}
+                    </p>
+                  )}
                   {item.notes && (
-                    <div className="text-xs text-muted-foreground mt-1">{item.notes}</div>
+                    <p className="text-sm text-muted-foreground">{item.notes}</p>
                   )}
                 </div>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>
-                    <Edit className="h-3 w-3" />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleDeliveryStatus(item.id, item.delivery_status)}
+                    className="flex items-center gap-2"
+                  >
+                    <Truck className="h-4 w-4" />
+                    Update Status
                   </Button>
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(item.id)}>
-                    <Trash2 className="h-3 w-3" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEdit(item)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             ))}
-            {groomItems.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No groom items added yet</p>
-            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {items.length === 0 && (
+        <Card className="shadow-card">
+          <CardContent className="p-12 text-center">
+            <Gift className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No seer items added yet. Click "Add Seer Item" to get started!</p>
           </CardContent>
         </Card>
-      </div>
+      )}
     </div>
   );
 };

@@ -6,6 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
   Dialog,
   DialogContent,
   DialogHeader,
@@ -17,78 +24,35 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Plus,
   Flower2,
+  CheckCircle2,
+  Clock,
   ShoppingCart,
-  MapPin,
   Edit,
   Trash2
 } from "lucide-react";
+import { Tables } from "@/integrations/supabase/types";
 
-interface PoojaItem {
-  id: string;
-  item_name: string;
-  ritual_name: string;
-  quantity_needed: number;
-  status: 'needed' | 'bought' | 'pending';
-  source_info?: string | null;
-  notes?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-const RITUAL_TEMPLATES = [
-  'Ganapathi Homam',
-  'Navagraha Homam',
-  'Kalyana Mandapam Setup',
-  'Mangalya Dharanam',
-  'Saptapadi',
-  'Kanyadanam',
-  'Jeelakarra Bellam',
-  'Talambralu',
-  'Grihapravesh'
-];
-
-const POOJA_ITEM_SUGGESTIONS = [
-  'Turmeric Powder',
-  'Kumkum',
-  'Sandalwood Paste',
-  'Camphor',
-  'Incense Sticks',
-  'Oil Lamps',
-  'Coconut',
-  'Betel Leaves',
-  'Banana',
-  'Mango Leaves',
-  'Flowers (Rose)',
-  'Flowers (Jasmine)',
-  'Sacred Thread',
-  'Rice',
-  'Ghee',
-  'Honey',
-  'Milk',
-  'Curd',
-  'Sugar',
-  'Dry Fruits'
-];
+type PoojaItem = Tables<'pooja_items'>;
 
 export const PoojaItemsTracker = () => {
-  const [poojaItems, setPoojaItems] = useState<PoojaItem[]>([]);
+  const [items, setItems] = useState<PoojaItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PoojaItem | null>(null);
   const [formData, setFormData] = useState({
     item_name: '',
     ritual_name: '',
     quantity_needed: 1,
-    status: 'needed' as const,
+    status: 'needed' as PoojaItem['status'],
     source_info: '',
     notes: ''
   });
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchPoojaItems();
+    fetchItems();
   }, []);
 
-  const fetchPoojaItems = async () => {
+  const fetchItems = async () => {
     const { data, error } = await supabase
       .from('pooja_items')
       .select('*')
@@ -101,7 +65,7 @@ export const PoojaItemsTracker = () => {
         variant: "destructive",
       });
     } else {
-      setPoojaItems(data || []);
+      setItems(data || []);
     }
   };
 
@@ -132,7 +96,7 @@ export const PoojaItemsTracker = () => {
     if (error) {
       toast({
         title: "Error",
-        description: `Failed to ${editingItem ? 'update' : 'add'} pooja item`,
+        description: `Failed to ${editingItem ? 'update' : 'create'} pooja item`,
         variant: "destructive",
       });
     } else {
@@ -141,7 +105,7 @@ export const PoojaItemsTracker = () => {
         description: `Pooja item ${editingItem ? 'updated' : 'added'} successfully`,
       });
       resetForm();
-      fetchPoojaItems();
+      fetchItems();
     }
   };
 
@@ -162,7 +126,7 @@ export const PoojaItemsTracker = () => {
         title: "Success",
         description: "Pooja item deleted successfully",
       });
-      fetchPoojaItems();
+      fetchItems();
     }
   };
 
@@ -192,15 +156,51 @@ export const PoojaItemsTracker = () => {
     setIsDialogOpen(true);
   };
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'bought': return 'bg-green-500';
-      case 'pending': return 'bg-yellow-500';
-      default: return 'bg-red-500';
+  const toggleStatus = async (itemId: string, currentStatus: PoojaItem['status']) => {
+    const statusOrder: PoojaItem['status'][] = ['needed', 'pending', 'bought'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const nextIndex = (currentIndex + 1) % statusOrder.length;
+    const newStatus = statusOrder[nextIndex];
+
+    const { error } = await supabase
+      .from('pooja_items')
+      .update({ status: newStatus })
+      .eq('id', itemId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update status",
+        variant: "destructive",
+      });
+    } else {
+      fetchItems();
     }
   };
 
-  const groupedItems = poojaItems.reduce((acc, item) => {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'bought':
+        return <CheckCircle2 className="h-4 w-4 text-success" />;
+      case 'pending':
+        return <ShoppingCart className="h-4 w-4 text-secondary" />;
+      default:
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'bought':
+        return <Badge className="bg-success text-success-foreground">Bought</Badge>;
+      case 'pending':
+        return <Badge className="bg-secondary text-secondary-foreground">Pending</Badge>;
+      default:
+        return <Badge variant="outline">Needed</Badge>;
+    }
+  };
+
+  const groupedItems = items.reduce((acc, item) => {
     if (!acc[item.ritual_name]) {
       acc[item.ritual_name] = [];
     }
@@ -208,13 +208,20 @@ export const PoojaItemsTracker = () => {
     return acc;
   }, {} as Record<string, PoojaItem[]>);
 
+  const stats = {
+    totalItems: items.length,
+    needed: items.filter(i => i.status === 'needed').length,
+    pending: items.filter(i => i.status === 'pending').length,
+    bought: items.filter(i => i.status === 'bought').length,
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Pooja Items Tracker</h1>
-          <p className="text-muted-foreground">Manage ritual items for each ceremony</p>
+          <p className="text-muted-foreground">Track ritual items needed for each ceremony</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -228,57 +235,58 @@ export const PoojaItemsTracker = () => {
               <DialogTitle>{editingItem ? 'Edit Pooja Item' : 'Add New Pooja Item'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <select
-                value={formData.ritual_name}
-                onChange={(e) => setFormData({ ...formData, ritual_name: e.target.value })}
-                className="w-full p-2 border rounded-md"
-                required
-              >
-                <option value="">Select a ritual...</option>
-                {RITUAL_TEMPLATES.map((ritual) => (
-                  <option key={ritual} value={ritual}>{ritual}</option>
-                ))}
-              </select>
-              <select
-                value={formData.item_name}
-                onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
-                className="w-full p-2 border rounded-md"
-                required
-              >
-                <option value="">Select an item...</option>
-                {POOJA_ITEM_SUGGESTIONS.map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
-              <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Input
+                  placeholder="Item Name (e.g., Kumkum, Turmeric, Rice)"
+                  value={formData.item_name}
+                  onChange={(e) => setFormData({ ...formData, item_name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Input
+                  placeholder="Ritual Name (e.g., Ganapathi Homam, Kalyanam)"
+                  value={formData.ritual_name}
+                  onChange={(e) => setFormData({ ...formData, ritual_name: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Input
+                  placeholder="Quantity Needed"
                   type="number"
                   min="1"
-                  placeholder="Quantity Needed"
                   value={formData.quantity_needed}
                   onChange={(e) => setFormData({ ...formData, quantity_needed: parseInt(e.target.value) || 1 })}
                   required
                 />
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'needed' | 'bought' | 'pending' })}
-                  className="p-2 border rounded-md"
-                >
-                  <option value="needed">Needed</option>
-                  <option value="pending">Pending</option>
-                  <option value="bought">Bought</option>
-                </select>
               </div>
-              <Input
-                placeholder="Source Information (Shop, Contact, etc.)"
-                value={formData.source_info}
-                onChange={(e) => setFormData({ ...formData, source_info: e.target.value })}
-              />
-              <Textarea
-                placeholder="Notes & Special Instructions"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              />
+              <div>
+                <Select value={formData.status} onValueChange={(value: PoojaItem['status']) => setFormData({ ...formData, status: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="needed">Needed</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="bought">Bought</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Input
+                  placeholder="Source Info (where to buy from)"
+                  value={formData.source_info}
+                  onChange={(e) => setFormData({ ...formData, source_info: e.target.value })}
+                />
+              </div>
+              <div>
+                <Textarea
+                  placeholder="Notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                />
+              </div>
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1 celebration">
                   {editingItem ? 'Update' : 'Add'} Item
@@ -292,80 +300,90 @@ export const PoojaItemsTracker = () => {
         </Dialog>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">{poojaItems.length}</div>
-            <div className="text-sm text-muted-foreground">Total Items</div>
+            <div className="text-2xl font-bold text-primary">{stats.totalItems}</div>
+            <p className="text-sm text-muted-foreground">Total Items</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-600">
-              {poojaItems.filter(item => item.status === 'needed').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Needed</div>
+            <div className="text-2xl font-bold text-muted-foreground">{stats.needed}</div>
+            <p className="text-sm text-muted-foreground">Needed</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-yellow-600">
-              {poojaItems.filter(item => item.status === 'pending').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Pending</div>
+            <div className="text-2xl font-bold text-secondary">{stats.pending}</div>
+            <p className="text-sm text-muted-foreground">Pending</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {poojaItems.filter(item => item.status === 'bought').length}
-            </div>
-            <div className="text-sm text-muted-foreground">Bought</div>
+            <div className="text-2xl font-bold text-success">{stats.bought}</div>
+            <p className="text-sm text-muted-foreground">Bought</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Items by Ritual */}
+      {/* Grouped Items by Ritual */}
       <div className="space-y-6">
-        {Object.entries(groupedItems).map(([ritualName, items]) => (
-          <Card key={ritualName}>
+        {Object.entries(groupedItems).map(([ritualName, ritualItems]) => (
+          <Card key={ritualName} className="shadow-card">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Flower2 className="h-5 w-5 text-primary" />
-                {ritualName} ({items.length} items)
+                {ritualName}
+                <Badge variant="outline">{ritualItems.length} items</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div className="grid gap-4">
+                {ritualItems.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium">{item.item_name}</span>
-                        <Badge className={`${getStatusBadgeColor(item.status)} text-white text-xs`}>
-                          {item.status}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Quantity: {item.quantity_needed}
+                      <div className="flex items-center gap-3 mb-2">
+                        <h4 className="font-medium">{item.item_name}</h4>
+                        <Badge variant="outline">Qty: {item.quantity_needed}</Badge>
+                        {getStatusBadge(item.status)}
                       </div>
                       {item.source_info && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                          <MapPin className="h-3 w-3" />
-                          {item.source_info}
-                        </div>
+                        <p className="text-sm text-muted-foreground mb-1">
+                          <strong>Source:</strong> {item.source_info}
+                        </p>
                       )}
                       {item.notes && (
-                        <div className="text-xs text-muted-foreground mt-1">{item.notes}</div>
+                        <p className="text-sm text-muted-foreground">{item.notes}</p>
                       )}
                     </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>
-                        <Edit className="h-3 w-3" />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => toggleStatus(item.id, item.status)}
+                        className="flex items-center gap-2"
+                      >
+                        {getStatusIcon(item.status)}
+                        Update Status
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDelete(item.id)}>
-                        <Trash2 className="h-3 w-3" />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(item)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(item.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -376,7 +394,7 @@ export const PoojaItemsTracker = () => {
         ))}
       </div>
 
-      {poojaItems.length === 0 && (
+      {items.length === 0 && (
         <Card className="shadow-card">
           <CardContent className="p-12 text-center">
             <Flower2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
