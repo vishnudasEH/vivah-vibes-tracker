@@ -7,10 +7,13 @@ import {
   Store, 
   DollarSign, 
   Calendar,
-  Upload
+  Upload,
+  Temple,
+  Gift,
+  Flower2
 } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'pooja-items';
 
 interface NavigationProps {
   activeView: ActiveView;
@@ -26,6 +29,9 @@ export const Navigation = ({ activeView, setActiveView }: NavigationProps) => {
     { id: 'budget' as ActiveView, label: 'Budget', icon: DollarSign },
     { id: 'events' as ActiveView, label: 'Events', icon: Calendar },
     { id: 'media' as ActiveView, label: 'Media', icon: Upload },
+    { id: 'tamil-ceremonies' as ActiveView, label: 'Tamil Ceremonies', icon: Temple },
+    { id: 'seer-items' as ActiveView, label: 'Seer Items', icon: Gift },
+    { id: 'pooja-items' as ActiveView, label: 'Pooja Items', icon: Flower2 },
   ];
 
   return (

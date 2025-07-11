@@ -8,11 +8,14 @@ import { VendorTracker } from "@/components/VendorTracker";
 import { BudgetTracker } from "@/components/BudgetTracker";
 import { EventSchedule } from "@/components/EventSchedule";
 import { MediaUpload } from "@/components/MediaUpload";
+import { TamilCeremonies } from "@/components/TamilCeremonies";
+import { SeerItemsTracker } from "@/components/SeerItemsTracker";
+import { PoojaItemsTracker } from "@/components/PoojaItemsTracker";
 import { Login } from "@/components/Login";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'events' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'pooja-items';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -53,6 +56,12 @@ const Index = () => {
         return <EventSchedule />;
       case 'media':
         return <MediaUpload />;
+      case 'tamil-ceremonies':
+        return <TamilCeremonies />;
+      case 'seer-items':
+        return <SeerItemsTracker />;
+      case 'pooja-items':
+        return <PoojaItemsTracker />;
       default:
         return <Dashboard />;
     }
@@ -62,7 +71,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5">
       <div className="bg-card border-b shadow-card">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">Wedding Planner</h1>
+          <h1 className="text-2xl font-bold text-primary">Tamil Wedding Planner</h1>
           <Button variant="outline" size="sm" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
             Logout
