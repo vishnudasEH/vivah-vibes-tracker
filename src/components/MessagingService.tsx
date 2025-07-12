@@ -94,7 +94,7 @@ export const MessagingService = () => {
 
     const { data: ceremoniesData, error: ceremoniesError } = await supabase
       .from('tamil_ceremonies')
-      .select('id, ceremony_name as name, ceremony_date as event_date, ceremony_time as event_time')
+      .select('id, ceremony_name, ceremony_date, ceremony_time')
       .gte('ceremony_date', new Date().toISOString().split('T')[0])
       .order('ceremony_date', { ascending: true });
 
@@ -105,9 +105,17 @@ export const MessagingService = () => {
         variant: "destructive",
       });
     } else {
+      // Transform ceremonies data to match Event interface
+      const transformedCeremonies = (ceremoniesData || []).map(ceremony => ({
+        id: ceremony.id,
+        name: ceremony.ceremony_name,
+        event_date: ceremony.ceremony_date || '',
+        event_time: ceremony.ceremony_time || undefined
+      }));
+
       const allEvents = [
         ...(eventsData || []),
-        ...(ceremoniesData || [])
+        ...transformedCeremonies
       ];
       setEvents(allEvents);
     }
