@@ -39,11 +39,12 @@ export const PoojaItemsTracker = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<PoojaItem | null>(null);
   const [formData, setFormData] = useState({
-    ceremony_name: '',
+    ritual_name: '',
     item_name: '',
-    quantity: 1,
-    status: 'pending' as PoojaItem['status'],
-    notes: ''
+    quantity_needed: 1,
+    status: 'needed' as PoojaItem['status'],
+    notes: '',
+    source_info: ''
   });
   const { toast } = useToast();
 
@@ -87,7 +88,7 @@ export const PoojaItemsTracker = () => {
     const { data, error } = await supabase
       .from('pooja_items')
       .select('*')
-      .order('ceremony_name', { ascending: true });
+      .order('ritual_name', { ascending: true });
 
     if (error) {
       toast({
@@ -104,11 +105,12 @@ export const PoojaItemsTracker = () => {
     e.preventDefault();
     
     const itemData = {
-      ceremony_name: formData.ceremony_name,
+      ritual_name: formData.ritual_name,
       item_name: formData.item_name,
-      quantity: formData.quantity,
+      quantity_needed: formData.quantity_needed,
       status: formData.status,
       notes: formData.notes || null,
+      source_info: formData.source_info || null,
     };
 
     let error;
@@ -162,11 +164,12 @@ export const PoojaItemsTracker = () => {
 
   const resetForm = () => {
     setFormData({
-      ceremony_name: '',
+      ritual_name: '',
       item_name: '',
-      quantity: 1,
-      status: 'pending',
-      notes: ''
+      quantity_needed: 1,
+      status: 'needed',
+      notes: '',
+      source_info: ''
     });
     setEditingItem(null);
     setIsDialogOpen(false);
@@ -175,17 +178,18 @@ export const PoojaItemsTracker = () => {
   const handleEdit = (item: PoojaItem) => {
     setEditingItem(item);
     setFormData({
-      ceremony_name: item.ceremony_name,
+      ritual_name: item.ritual_name,
       item_name: item.item_name,
-      quantity: item.quantity,
+      quantity_needed: item.quantity_needed,
       status: item.status,
-      notes: item.notes || ''
+      notes: item.notes || '',
+      source_info: item.source_info || ''
     });
     setIsDialogOpen(true);
   };
 
   const toggleStatus = async (itemId: string, currentStatus: PoojaItem['status']) => {
-    const newStatus = currentStatus === 'pending' ? 'purchased' : 'pending';
+    const newStatus = currentStatus === 'needed' ? 'purchased' : 'needed';
 
     const { error } = await supabase
       .from('pooja_items')
@@ -203,12 +207,12 @@ export const PoojaItemsTracker = () => {
     }
   };
 
-  const markCeremonyComplete = async (ceremonyName: string) => {
+  const markCeremonyComplete = async (ritualName: string) => {
     const { error } = await supabase
       .from('pooja_items')
       .update({ status: 'purchased' })
-      .eq('ceremony_name', ceremonyName)
-      .eq('status', 'pending');
+      .eq('ritual_name', ritualName)
+      .eq('status', 'needed');
 
     if (error) {
       toast({
@@ -219,7 +223,7 @@ export const PoojaItemsTracker = () => {
     } else {
       toast({
         title: "Success",
-        description: `All items for ${ceremonyName} marked as purchased`,
+        description: `All items for ${ritualName} marked as purchased`,
       });
       fetchItems();
     }
@@ -234,20 +238,20 @@ export const PoojaItemsTracker = () => {
   const getStatusBadge = (status: string) => {
     return status === 'purchased'
       ? <Badge className="bg-success text-success-foreground">Purchased</Badge>
-      : <Badge variant="outline">Pending</Badge>;
+      : <Badge variant="outline">Needed</Badge>;
   };
 
   const groupedItems = items.reduce((acc, item) => {
-    if (!acc[item.ceremony_name]) {
-      acc[item.ceremony_name] = [];
+    if (!acc[item.ritual_name]) {
+      acc[item.ritual_name] = [];
     }
-    acc[item.ceremony_name].push(item);
+    acc[item.ritual_name].push(item);
     return acc;
   }, {} as Record<string, PoojaItem[]>);
 
   const stats = {
     totalItems: items.length,
-    pending: items.filter(i => i.status === 'pending').length,
+    needed: items.filter(i => i.status === 'needed').length,
     purchased: items.filter(i => i.status === 'purchased').length,
   };
 
@@ -272,7 +276,7 @@ export const PoojaItemsTracker = () => {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Select value={formData.ceremony_name} onValueChange={(value) => setFormData({ ...formData, ceremony_name: value })}>
+                <Select value={formData.ritual_name} onValueChange={(value) => setFormData({ ...formData, ritual_name: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Ceremony" />
                   </SelectTrigger>
@@ -308,11 +312,11 @@ export const PoojaItemsTracker = () => {
               )}
               <div>
                 <Input
-                  placeholder="Quantity"
+                  placeholder="Quantity Needed"
                   type="number"
                   min="1"
-                  value={formData.quantity}
-                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                  value={formData.quantity_needed}
+                  onChange={(e) => setFormData({ ...formData, quantity_needed: parseInt(e.target.value) || 1 })}
                   required
                 />
               </div>
@@ -322,10 +326,17 @@ export const PoojaItemsTracker = () => {
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="needed">Needed</SelectItem>
                     <SelectItem value="purchased">Purchased</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Input
+                  placeholder="Source Info (optional)"
+                  value={formData.source_info}
+                  onChange={(e) => setFormData({ ...formData, source_info: e.target.value })}
+                />
               </div>
               <div>
                 <Textarea
@@ -357,8 +368,8 @@ export const PoojaItemsTracker = () => {
         </Card>
         <Card className="shadow-card">
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-muted-foreground">{stats.pending}</div>
-            <p className="text-sm text-muted-foreground">Pending</p>
+            <div className="text-2xl font-bold text-muted-foreground">{stats.needed}</div>
+            <p className="text-sm text-muted-foreground">Needed</p>
           </CardContent>
         </Card>
         <Card className="shadow-card">
@@ -371,20 +382,20 @@ export const PoojaItemsTracker = () => {
 
       {/* Grouped Items by Ceremony */}
       <div className="space-y-6">
-        {Object.entries(groupedItems).map(([ceremonyName, ceremonyItems]) => (
-          <Card key={ceremonyName} className="shadow-card">
+        {Object.entries(groupedItems).map(([ritualName, ritualItems]) => (
+          <Card key={ritualName} className="shadow-card">
             <CardHeader>
               <div className="flex justify-between items-center">
                 <CardTitle className="flex items-center gap-2">
                   <Flower2 className="h-5 w-5 text-primary" />
-                  {ceremonyName}
-                  <Badge variant="outline">{ceremonyItems.length} items</Badge>
+                  {ritualName}
+                  <Badge variant="outline">{ritualItems.length} items</Badge>
                 </CardTitle>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => markCeremonyComplete(ceremonyName)}
-                  disabled={ceremonyItems.every(item => item.status === 'purchased')}
+                  onClick={() => markCeremonyComplete(ritualName)}
+                  disabled={ritualItems.every(item => item.status === 'purchased')}
                 >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   Mark All Complete
@@ -393,7 +404,7 @@ export const PoojaItemsTracker = () => {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {ceremonyItems.map((item) => (
+                {ritualItems.map((item) => (
                   <div 
                     key={item.id} 
                     className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -401,9 +412,14 @@ export const PoojaItemsTracker = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h4 className="font-medium">{item.item_name}</h4>
-                        <Badge variant="outline">Qty: {item.quantity}</Badge>
+                        <Badge variant="outline">Qty: {item.quantity_needed}</Badge>
                         {getStatusBadge(item.status)}
                       </div>
+                      {item.source_info && (
+                        <p className="text-sm text-muted-foreground mb-1">
+                          <span className="font-medium">Source:</span> {item.source_info}
+                        </p>
+                      )}
                       {item.notes && (
                         <p className="text-sm text-muted-foreground">{item.notes}</p>
                       )}
