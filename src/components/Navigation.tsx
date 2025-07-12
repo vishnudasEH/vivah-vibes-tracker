@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { 
   LayoutDashboard, 
@@ -13,10 +12,11 @@ import {
   Plane,
   Mail,
   Bell,
-  MessageSquare
+  MessageSquare,
+  Flower2
 } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'media' | 'tamil-ceremonies' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging' | 'pooja-items';
 
 interface NavigationProps {
   activeView: ActiveView;
@@ -32,6 +32,7 @@ export const Navigation = ({ activeView, setActiveView }: NavigationProps) => {
     { id: 'budget' as ActiveView, label: 'Budget', icon: DollarSign },
     { id: 'media' as ActiveView, label: 'Media', icon: Upload },
     { id: 'tamil-ceremonies' as ActiveView, label: 'Tamil Ceremonies', icon: Church },
+    { id: 'pooja-items' as ActiveView, label: 'Pooja Items', icon: Flower2 },
     { id: 'seer-items' as ActiveView, label: 'Seer Items', icon: Gift },
     { id: 'guest-travel' as ActiveView, label: 'Guest Travel', icon: Plane },
     { id: 'invitation-tracker' as ActiveView, label: 'Invitations', icon: Mail },
