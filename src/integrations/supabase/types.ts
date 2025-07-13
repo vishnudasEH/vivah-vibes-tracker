@@ -41,6 +41,48 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_items: {
+        Row: {
+          actual_amount: number
+          budgeted_amount: number
+          category: string
+          created_at: string
+          id: string
+          item_name: string
+          notes: string | null
+          payment_mode: string | null
+          status: string
+          updated_at: string
+          vendor_name: string | null
+        }
+        Insert: {
+          actual_amount?: number
+          budgeted_amount?: number
+          category: string
+          created_at?: string
+          id?: string
+          item_name: string
+          notes?: string | null
+          payment_mode?: string | null
+          status?: string
+          updated_at?: string
+          vendor_name?: string | null
+        }
+        Update: {
+          actual_amount?: number
+          budgeted_amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          item_name?: string
+          notes?: string | null
+          payment_mode?: string | null
+          status?: string
+          updated_at?: string
+          vendor_name?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string

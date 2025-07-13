@@ -29,11 +29,16 @@ import {
   PieChart as PieChartIcon
 } from "lucide-react";
 
-interface BudgetCategory {
+interface BudgetItem {
   id: string;
-  name: string;
-  estimated_amount: number;
+  category: string;
+  item_name: string;
+  budgeted_amount: number;
   actual_amount: number;
+  status: string;
+  notes?: string;
+  vendor_name?: string;
+  payment_mode?: string;
 }
 
 interface Expense {
@@ -46,17 +51,18 @@ interface Expense {
 }
 
 export const BudgetTracker = () => {
-  const [categories, setCategories] = useState<BudgetCategory[]>([]);
+  const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
-  const [isBudgetDialogOpen, setIsBudgetDialogOpen] = useState(false);
   const [expenseForm, setExpenseForm] = useState({
     description: '',
     amount: '',
-    category_id: '',
+    category: '',
     expense_date: new Date().toISOString().split('T')[0]
   });
   const { toast } = useToast();
+
+  const categories = ['Marriage at Mahal', 'Reception at Mahal', 'Engagement', 'Home Setup'];
 
   useEffect(() => {
     fetchBudgetData();
@@ -65,9 +71,10 @@ export const BudgetTracker = () => {
 
   const fetchBudgetData = async () => {
     const { data, error } = await supabase
-      .from('budget_categories')
+      .from('budget_items')
       .select('*')
-      .order('name');
+      .order('category')
+      .order('item_name');
 
     if (error) {
       toast({
@@ -76,7 +83,7 @@ export const BudgetTracker = () => {
         variant: "destructive",
       });
     } else {
-      setCategories(data || []);
+      setBudgetItems(data || []);
     }
   };
 
@@ -105,7 +112,6 @@ export const BudgetTracker = () => {
       .insert({
         description: expenseForm.description,
         amount: parseFloat(expenseForm.amount),
-        category_id: expenseForm.category_id || null,
         expense_date: expenseForm.expense_date
       });
 
@@ -116,19 +122,6 @@ export const BudgetTracker = () => {
         variant: "destructive",
       });
     } else {
-      // Update actual amount in budget category
-      if (expenseForm.category_id) {
-        const category = categories.find(c => c.id === expenseForm.category_id);
-        if (category) {
-          await supabase
-            .from('budget_categories')
-            .update({ 
-              actual_amount: category.actual_amount + parseFloat(expenseForm.amount) 
-            })
-            .eq('id', expenseForm.category_id);
-        }
-      }
-
       toast({
         title: "Success",
         description: "Expense added successfully",
@@ -137,52 +130,43 @@ export const BudgetTracker = () => {
       setExpenseForm({
         description: '',
         amount: '',
-        category_id: '',
+        category: '',
         expense_date: new Date().toISOString().split('T')[0]
       });
       setIsExpenseDialogOpen(false);
-      fetchBudgetData();
       fetchExpenses();
     }
   };
 
-  const updateBudget = async (categoryId: string, newEstimate: number) => {
-    const { error } = await supabase
-      .from('budget_categories')
-      .update({ estimated_amount: newEstimate })
-      .eq('id', categoryId);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update budget",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "Budget updated successfully",
-      });
-      fetchBudgetData();
-    }
+  const getCategoryTotals = (category: string) => {
+    const categoryItems = budgetItems.filter(item => item.category === category);
+    const budgeted = categoryItems.reduce((sum, item) => sum + item.budgeted_amount, 0);
+    const actual = categoryItems.reduce((sum, item) => sum + item.actual_amount, 0);
+    return { budgeted, actual };
   };
 
-  const totalEstimated = categories.reduce((sum, cat) => sum + cat.estimated_amount, 0);
-  const totalSpent = categories.reduce((sum, cat) => sum + cat.actual_amount, 0);
+  const totalEstimated = budgetItems.reduce((sum, item) => sum + item.budgeted_amount, 0);
+  const totalSpent = budgetItems.reduce((sum, item) => sum + item.actual_amount, 0);
   const remaining = totalEstimated - totalSpent;
 
-  const pieData = categories.map(cat => ({
-    name: cat.name,
-    value: cat.actual_amount,
-    estimated: cat.estimated_amount
-  })).filter(item => item.value > 0);
+  const pieData = categories.map(category => {
+    const totals = getCategoryTotals(category);
+    return {
+      name: category.replace(' at Mahal', ''),
+      value: totals.actual,
+      estimated: totals.budgeted
+    };
+  }).filter(item => item.value > 0);
 
-  const chartData = categories.map(cat => ({
-    name: cat.name.length > 8 ? cat.name.substring(0, 8) + '...' : cat.name,
-    estimated: cat.estimated_amount,
-    actual: cat.actual_amount,
-    remaining: Math.max(0, cat.estimated_amount - cat.actual_amount)
-  }));
+  const chartData = categories.map(category => {
+    const totals = getCategoryTotals(category);
+    return {
+      name: category.length > 8 ? category.replace(' at Mahal', '') : category,
+      estimated: totals.budgeted,
+      actual: totals.actual,
+      remaining: Math.max(0, totals.budgeted - totals.actual)
+    };
+  });
 
   const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F'];
 
@@ -220,16 +204,6 @@ export const BudgetTracker = () => {
                   onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
                   required
                 />
-                <Select value={expenseForm.category_id} onValueChange={(value) => setExpenseForm({ ...expenseForm, category_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <Input
                   type="date"
                   value={expenseForm.expense_date}
@@ -348,16 +322,17 @@ export const BudgetTracker = () => {
         <CardContent>
           <div className="space-y-4">
             {categories.map((category) => {
-              const progress = category.estimated_amount > 0 
-                ? (category.actual_amount / category.estimated_amount) * 100 
+              const totals = getCategoryTotals(category);
+              const progress = totals.budgeted > 0 
+                ? (totals.actual / totals.budgeted) * 100 
                 : 0;
               
               return (
-                <div key={category.id} className="p-4 border rounded-lg">
+                <div key={category} className="p-4 border rounded-lg">
                   <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold">{category.name}</h3>
+                    <h3 className="font-semibold">{category}</h3>
                     <div className="text-sm text-muted-foreground">
-                      ₹{category.actual_amount.toLocaleString()} / ₹{category.estimated_amount.toLocaleString()}
+                      ₹{totals.actual.toLocaleString()} / ₹{totals.budgeted.toLocaleString()}
                     </div>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
@@ -372,7 +347,7 @@ export const BudgetTracker = () => {
                     </span>
                     {progress > 100 && (
                       <span className="text-destructive font-medium">
-                        Over budget by ₹{(category.actual_amount - category.estimated_amount).toLocaleString()}
+                        Over budget by ₹{(totals.actual - totals.budgeted).toLocaleString()}
                       </span>
                     )}
                   </div>
@@ -390,22 +365,19 @@ export const BudgetTracker = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {expenses.slice(0, 10).map((expense) => {
-              const category = categories.find(c => c.id === expense.category_id);
-              return (
-                <div key={expense.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
-                  <div>
-                    <p className="font-medium">{expense.description}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {category?.name} • {new Date(expense.expense_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">₹{expense.amount.toLocaleString()}</p>
-                  </div>
+            {expenses.slice(0, 10).map((expense) => (
+              <div key={expense.id} className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                <div>
+                  <p className="font-medium">{expense.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {new Date(expense.expense_date).toLocaleDateString()}
+                  </p>
                 </div>
-              );
-            })}
+                <div className="text-right">
+                  <p className="font-semibold">₹{expense.amount.toLocaleString()}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

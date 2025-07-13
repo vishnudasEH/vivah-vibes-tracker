@@ -5,6 +5,7 @@ import { TaskTracker } from "@/components/TaskTracker";
 import { GuestTracker } from "@/components/GuestTracker";
 import { VendorTracker } from "@/components/VendorTracker";
 import { BudgetTracker } from "@/components/BudgetTracker";
+import { BudgetItemsTracker } from "@/components/BudgetItemsTracker";
 import { MediaUpload } from "@/components/MediaUpload";
 import { TamilCeremonies } from "@/components/TamilCeremonies";
 import { PoojaItemsTracker } from "@/components/PoojaItemsTracker";
@@ -17,7 +18,7 @@ import { Login } from "@/components/Login";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'media' | 'tamil-ceremonies' | 'pooja-items' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'budget-items' | 'media' | 'tamil-ceremonies' | 'pooja-items' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -54,6 +55,8 @@ const Index = () => {
         return <VendorTracker />;
       case 'budget':
         return <BudgetTracker />;
+      case 'budget-items':
+        return <BudgetItemsTracker />;
       case 'media':
         return <MediaUpload />;
       case 'tamil-ceremonies':
