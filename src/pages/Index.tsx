@@ -39,6 +39,10 @@ const Index = () => {
     setIsAuthenticated(false);
   };
 
+  const handleViewChange = (view: string) => {
+    setActiveView(view as ActiveView);
+  };
+
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
@@ -90,7 +94,7 @@ const Index = () => {
         </div>
       </div>
       
-      <Navigation activeView={activeView} setActiveView={setActiveView} />
+      <Navigation activeView={activeView} setActiveView={handleViewChange} />
       
       <main className="container mx-auto px-4 py-6">
         {renderActiveView()}

@@ -450,7 +450,7 @@ export const BudgetItemsTracker = () => {
                               {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                             </span>
                             {item.actual_amount > item.budgeted_amount && (
-                              <AlertTriangle className="h-4 w-4 text-destructive" title="Over budget" />
+                              <AlertTriangle className="h-4 w-4 text-destructive" />
                             )}
                           </div>
                           
