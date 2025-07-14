@@ -121,7 +121,7 @@ export const FinanceTracker = () => {
       } else {
         const { data, error } = await supabase
           .from('finance_tracker')
-          .insert([record])
+          .insert(record)
           .select()
           .single();
         if (error) throw error;
