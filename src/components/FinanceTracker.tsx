@@ -63,10 +63,23 @@ interface FinanceRecord {
   cumulative_available: number;
 }
 
+interface FinanceRecordInput {
+  id?: string;
+  month_year: string;
+  monthly_salary: number;
+  loan_amount: number;
+  loan_interest_rate: number;
+  loan_tenure_months: number;
+  cash_hdfc: number;
+  cash_boi: number;
+  credit_card_spent_idfc: number;
+  bonus_income: number;
+}
+
 export const FinanceTracker = () => {
   const queryClient = useQueryClient();
   const [editingRecord, setEditingRecord] = useState<string | null>(null);
-  const [newRecord, setNewRecord] = useState<Partial<FinanceRecord>>({
+  const [newRecord, setNewRecord] = useState<FinanceRecordInput>({
     month_year: format(new Date(), 'yyyy-MM-01'),
     monthly_salary: 80000,
     loan_amount: 300000,
@@ -108,7 +121,7 @@ export const FinanceTracker = () => {
 
   // Create/Update mutation
   const mutation = useMutation({
-    mutationFn: async (record: Partial<FinanceRecord>) => {
+    mutationFn: async (record: FinanceRecordInput) => {
       if (record.id) {
         const { data, error } = await supabase
           .from('finance_tracker')
@@ -178,7 +191,7 @@ export const FinanceTracker = () => {
     target: totalBudget
   }));
 
-  const handleSave = (record: Partial<FinanceRecord>) => {
+  const handleSave = (record: FinanceRecordInput) => {
     mutation.mutate(record);
   };
 
@@ -209,7 +222,20 @@ export const FinanceTracker = () => {
         onChange={(e) => setValue(type === "number" || type === "currency" ? Number(e.target.value) : e.target.value)}
         onBlur={() => {
           if (value !== record[field]) {
-            handleSave({ ...record, [field]: value });
+            const updatedRecord: FinanceRecordInput = {
+              id: record.id,
+              month_year: record.month_year,
+              monthly_salary: record.monthly_salary,
+              loan_amount: record.loan_amount,
+              loan_interest_rate: record.loan_interest_rate,
+              loan_tenure_months: record.loan_tenure_months,
+              cash_hdfc: record.cash_hdfc,
+              cash_boi: record.cash_boi,
+              credit_card_spent_idfc: record.credit_card_spent_idfc,
+              bonus_income: record.bonus_income,
+              [field]: value
+            };
+            handleSave(updatedRecord);
           }
         }}
         className="w-full"
