@@ -17,8 +17,9 @@ import { MessagingService } from "@/components/MessagingService";
 import { Login } from "@/components/Login";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { FinanceTracker } from "@/components/FinanceTracker";
 
-type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'budget-items' | 'media' | 'tamil-ceremonies' | 'pooja-items' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging';
+type ActiveView = 'dashboard' | 'tasks' | 'guests' | 'vendors' | 'budget' | 'budget-items' | 'finance-tracker' | 'media' | 'tamil-ceremonies' | 'pooja-items' | 'seer-items' | 'guest-travel' | 'invitation-tracker' | 'event-reminders' | 'messaging';
 
 const Index = () => {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
@@ -61,6 +62,8 @@ const Index = () => {
         return <BudgetTracker />;
       case 'budget-items':
         return <BudgetItemsTracker />;
+      case 'finance-tracker':
+        return <FinanceTracker />;
       case 'media':
         return <MediaUpload />;
       case 'tamil-ceremonies':

@@ -164,6 +164,60 @@ export type Database = {
           },
         ]
       }
+      finance_tracker: {
+        Row: {
+          available_funds_month: number
+          bonus_income: number
+          cash_boi: number
+          cash_hdfc: number
+          created_at: string
+          credit_card_spent_idfc: number
+          cumulative_available: number
+          id: string
+          loan_amount: number
+          loan_interest_rate: number
+          loan_tenure_months: number
+          month_year: string
+          monthly_emi: number
+          monthly_salary: number
+          updated_at: string
+        }
+        Insert: {
+          available_funds_month?: number
+          bonus_income?: number
+          cash_boi?: number
+          cash_hdfc?: number
+          created_at?: string
+          credit_card_spent_idfc?: number
+          cumulative_available?: number
+          id?: string
+          loan_amount?: number
+          loan_interest_rate?: number
+          loan_tenure_months?: number
+          month_year: string
+          monthly_emi?: number
+          monthly_salary?: number
+          updated_at?: string
+        }
+        Update: {
+          available_funds_month?: number
+          bonus_income?: number
+          cash_boi?: number
+          cash_hdfc?: number
+          created_at?: string
+          credit_card_spent_idfc?: number
+          cumulative_available?: number
+          id?: string
+          loan_amount?: number
+          loan_interest_rate?: number
+          loan_tenure_months?: number
+          month_year?: string
+          monthly_emi?: number
+          monthly_salary?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       guest_tags: {
         Row: {
           created_at: string
@@ -475,7 +529,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_emi: {
+        Args: { principal: number; annual_rate: number; tenure_months: number }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never

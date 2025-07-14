@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { 
   Calendar,
@@ -6,6 +5,7 @@ import {
   Building2,
   Wallet,
   Calculator,
+  TrendingUp,
   Camera,
   Heart,
   Flower2,
@@ -34,6 +34,7 @@ export const Navigation = ({ activeView, setActiveView }: NavigationProps) => {
     { id: 'vendors', label: 'Vendors', icon: Building2, color: 'text-muted-foreground' },
     { id: 'budget', label: 'Budget Overview', icon: Wallet, color: 'text-primary' },
     { id: 'budget-items', label: 'Budget Tracker', icon: Calculator, color: 'text-secondary' },
+    { id: 'finance-tracker', label: 'Finance Tracker', icon: TrendingUp, color: 'text-green-600' },
     { id: 'media', label: 'Media', icon: Camera, color: 'text-accent' },
     { id: 'tamil-ceremonies', label: 'Tamil Ceremonies', icon: Heart, color: 'text-destructive' },
     { id: 'pooja-items', label: 'Pooja Items', icon: Flower2, color: 'text-success' },
