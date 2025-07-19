@@ -1,3 +1,4 @@
+
 import { Card } from "@/components/ui/card";
 import { 
   Calendar,
@@ -15,7 +16,8 @@ import {
   Bell,
   MessageSquare,
   Menu,
-  X
+  X,
+  Home
 } from "lucide-react";
 import { useState } from "react";
 
@@ -35,6 +37,7 @@ export const Navigation = ({ activeView, setActiveView }: NavigationProps) => {
     { id: 'budget', label: 'Budget Overview', icon: Wallet, color: 'text-primary' },
     { id: 'budget-items', label: 'Budget Tracker', icon: Calculator, color: 'text-secondary' },
     { id: 'finance-tracker', label: 'Finance Tracker', icon: TrendingUp, color: 'text-green-600' },
+    { id: 'home-setup', label: 'Home Setup & Rental', icon: Home, color: 'text-blue-600' },
     { id: 'media', label: 'Media', icon: Camera, color: 'text-accent' },
     { id: 'tamil-ceremonies', label: 'Tamil Ceremonies', icon: Heart, color: 'text-destructive' },
     { id: 'pooja-items', label: 'Pooja Items', icon: Flower2, color: 'text-success' },

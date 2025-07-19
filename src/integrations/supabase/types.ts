@@ -299,6 +299,123 @@ export type Database = {
         }
         Relationships: []
       }
+      home_setup_categories: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      home_setup_documents: {
+        Row: {
+          created_at: string
+          document_name: string
+          document_type: string
+          file_size: number | null
+          file_url: string
+          id: string
+          mime_type: string | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          document_name: string
+          document_type: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          document_name?: string
+          document_type?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          mime_type?: string | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      home_setup_items: {
+        Row: {
+          actual_price: number | null
+          category: string
+          created_at: string
+          delivery_date: string | null
+          estimated_price: number | null
+          id: string
+          item_name: string
+          notes: string | null
+          photo_url: string | null
+          priority: string
+          purchase_date: string | null
+          receipt_url: string | null
+          reminder_date: string | null
+          status: string
+          updated_at: string
+          vendor_info: string | null
+        }
+        Insert: {
+          actual_price?: number | null
+          category: string
+          created_at?: string
+          delivery_date?: string | null
+          estimated_price?: number | null
+          id?: string
+          item_name: string
+          notes?: string | null
+          photo_url?: string | null
+          priority?: string
+          purchase_date?: string | null
+          receipt_url?: string | null
+          reminder_date?: string | null
+          status?: string
+          updated_at?: string
+          vendor_info?: string | null
+        }
+        Update: {
+          actual_price?: number | null
+          category?: string
+          created_at?: string
+          delivery_date?: string | null
+          estimated_price?: number | null
+          id?: string
+          item_name?: string
+          notes?: string | null
+          photo_url?: string | null
+          priority?: string
+          purchase_date?: string | null
+          receipt_url?: string | null
+          reminder_date?: string | null
+          status?: string
+          updated_at?: string
+          vendor_info?: string | null
+        }
+        Relationships: []
+      }
       pooja_items: {
         Row: {
           created_at: string
