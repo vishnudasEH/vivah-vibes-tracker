@@ -54,6 +54,24 @@ interface HomeSetupItem {
   updated_at: string;
 }
 
+// Type for inserting/updating items - ensures required fields are present
+interface HomeSetupItemInput {
+  id?: string;
+  category: string;
+  item_name: string;
+  estimated_price?: number;
+  actual_price?: number;
+  status?: 'planned' | 'purchased' | 'delivered' | 'pending';
+  priority?: 'low' | 'medium' | 'high';
+  notes?: string;
+  photo_url?: string;
+  receipt_url?: string;
+  reminder_date?: string;
+  purchase_date?: string;
+  delivery_date?: string;
+  vendor_info?: string;
+}
+
 interface HomeSetupCategory {
   id: string;
   name: string;
@@ -123,7 +141,7 @@ export const HomeSetupTracker = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [editingItem, setEditingItem] = useState<HomeSetupItem | null>(null);
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [newItem, setNewItem] = useState<Partial<HomeSetupItem>>({
+  const [newItem, setNewItem] = useState<HomeSetupItemInput>({
     category: '',
     item_name: '',
     estimated_price: 0,
@@ -173,7 +191,7 @@ export const HomeSetupTracker = () => {
 
   // Create/Update item mutation
   const itemMutation = useMutation({
-    mutationFn: async (item: Partial<HomeSetupItem>) => {
+    mutationFn: async (item: HomeSetupItemInput) => {
       if (item.id) {
         const { data, error } = await supabase
           .from('home_setup_items')
@@ -290,7 +308,7 @@ export const HomeSetupTracker = () => {
     }
   };
 
-  const handleSaveItem = (item: Partial<HomeSetupItem>) => {
+  const handleSaveItem = (item: HomeSetupItemInput) => {
     itemMutation.mutate(item);
   };
 
@@ -669,15 +687,30 @@ export const HomeSetupTracker = () => {
 interface ItemFormProps {
   item: Partial<HomeSetupItem>;
   categories: HomeSetupCategory[];
-  onSave: (item: Partial<HomeSetupItem>) => void;
+  onSave: (item: HomeSetupItemInput) => void;
   onCancel: () => void;
 }
 
 const ItemForm = ({ item, categories, onSave, onCancel }: ItemFormProps) => {
-  const [formData, setFormData] = useState(item);
+  const [formData, setFormData] = useState<HomeSetupItemInput>({
+    id: item.id,
+    category: item.category || '',
+    item_name: item.item_name || '',
+    estimated_price: item.estimated_price || 0,
+    actual_price: item.actual_price || 0,
+    status: item.status || 'planned',
+    priority: item.priority || 'medium',
+    notes: item.notes || '',
+    vendor_info: item.vendor_info || '',
+    purchase_date: item.purchase_date || ''
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.category || !formData.item_name) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
     onSave(formData);
   };
 
@@ -685,9 +718,9 @@ const ItemForm = ({ item, categories, onSave, onCancel }: ItemFormProps) => {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="category">Category</Label>
+          <Label htmlFor="category">Category *</Label>
           <Select 
-            value={formData.category || ''} 
+            value={formData.category} 
             onValueChange={(value) => setFormData({...formData, category: value})}
           >
             <SelectTrigger>
@@ -704,10 +737,10 @@ const ItemForm = ({ item, categories, onSave, onCancel }: ItemFormProps) => {
         </div>
 
         <div>
-          <Label htmlFor="item_name">Item Name</Label>
+          <Label htmlFor="item_name">Item Name *</Label>
           <Input
             id="item_name"
-            value={formData.item_name || ''}
+            value={formData.item_name}
             onChange={(e) => setFormData({...formData, item_name: e.target.value})}
             placeholder="Enter item name"
             required
