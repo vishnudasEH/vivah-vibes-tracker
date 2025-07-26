@@ -234,7 +234,7 @@ export const BudgetTracker = () => {
       name: category.replace(' at Mahal', ''),
       value: totals.actual,
       estimated: totals.budgeted,
-      percentage: totalSpent > 0 ? ((totals.actual / totalSpent) * 100).toFixed(1) : 0
+      percentage: totalSpent > 0 ? ((totals.actual / totalSpent) * 100).toFixed(1) : '0'
     };
   }).filter(item => item.value > 0);
 
@@ -251,7 +251,7 @@ export const BudgetTracker = () => {
       estimated: totals.budgeted,
       actual: totals.actual,
       variance: totals.actual - totals.budgeted,
-      efficiency: totals.budgeted > 0 ? ((totals.budgeted - totals.actual) / totals.budgeted * 100).toFixed(1) : 0
+      efficiency: totals.budgeted > 0 ? ((totals.budgeted - totals.actual) / totals.budgeted * 100).toFixed(1) : '0'
     };
   });
 
@@ -263,8 +263,8 @@ export const BudgetTracker = () => {
       ...budgetItems.map(item => [
         item.category,
         item.item_name,
-        item.budgeted_amount,
-        item.actual_amount,
+        item.budgeted_amount.toString(),
+        item.actual_amount.toString(),
         item.status,
         item.vendor_name || '',
         item.notes || ''
