@@ -83,7 +83,7 @@ export const FinanceTracker = () => {
     month_year: format(new Date(), 'yyyy-MM-01'),
     monthly_salary: 80000,
     loan_amount: 300000,
-    loan_interest_rate: 10,
+    loan_interest_rate: 12, // Updated to 12%
     loan_tenure_months: 12,
     cash_hdfc: 0,
     cash_boi: 0,
@@ -348,6 +348,7 @@ export const FinanceTracker = () => {
                   {monthlyTargetSaving > 50000 && (
                     <p className="text-amber-700">⚠️ This requires significant monthly savings. Consider reviewing your budget or extending your timeline.</p>
                   )}
+                  <p className="text-blue-700">📈 <strong>Loan Update:</strong> With the new 12% interest rate on your 3L personal loan, your EMI will be approximately ₹26,625/month (instead of ₹26,375 at 10%).</p>
                 </div>
               ) : (
                 <p className="text-green-700">🎉 Congratulations! You've already arranged enough funds for your wedding budget!</p>
@@ -437,7 +438,7 @@ export const FinanceTracker = () => {
             Monthly Financial Records
           </CardTitle>
           <CardDescription>
-            Click on any cell to edit values. EMI and calculations will update automatically.
+            Click on any cell to edit values. EMI and calculations will update automatically. Interest rate updated to 12% for 3L loan.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -474,7 +475,7 @@ export const FinanceTracker = () => {
                     />
                   </div>
                   <div>
-                    <Label>Interest Rate (%)</Label>
+                    <Label>Interest Rate (%) - Updated to 12%</Label>
                     <Input
                       type="number"
                       step="0.1"
