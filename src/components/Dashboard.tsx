@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -45,7 +44,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   // Wedding date
-  const weddingDate = new Date('2026-01-25');
+  const weddingDate = new Date('2025-11-23');
   const today = new Date();
   const daysLeft = Math.ceil((weddingDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
 
@@ -144,7 +143,7 @@ export const Dashboard = () => {
           </div>
           <div className="text-6xl font-bold mb-2">{daysLeft > 0 ? daysLeft : 0}</div>
           <p className="text-xl opacity-90">Days to go!</p>
-          <p className="text-lg opacity-80 mt-2">January 25, 2026</p>
+          <p className="text-lg opacity-80 mt-2">November 23, 2025</p>
         </CardContent>
       </Card>
 
